@@ -19,6 +19,9 @@ $adminName = $_SESSION['username'] ?? 'Admin';
     <title>Admin Dashboard - ServiceHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        * {
+            box-sizing: border-box;
+        }
         :root {
             --sidebar-bg: #101623;
             --sidebar-hover: #1f2937;
@@ -29,19 +32,21 @@ $adminName = $_SESSION['username'] ?? 'Admin';
             --border-color: #e5e7eb;
         }
 
-        body, html {
+       body, html {
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-light);
             display: flex;
             height: 100vh;
+            width: 100vw; /* Forces the body to span the entire screen width */
             overflow: hidden;
         }
 
         /* Sidebar Styles */
-        .sidebar {
+       .sidebar {
             width: 250px;
+            flex-shrink: 0; /* Prevents sidebar from shrinking */
             background-color: var(--sidebar-bg);
             color: #fff;
             display: flex;
@@ -141,8 +146,9 @@ $adminName = $_SESSION['username'] ?? 'Admin';
         .logout-btn:hover { color: #ff7b72; }
 
         /* Main Content Area */
-        .main-content {
-            flex-grow: 1;
+       .main-content {
+            flex: 1; /* Tells it to take up all remaining flex space */
+            width: calc(100% - 250px); /* Strictly sets the width to fill the gap */
             padding: 30px 40px;
             overflow-y: auto;
         }
@@ -251,10 +257,10 @@ $adminName = $_SESSION['username'] ?? 'Admin';
         <ul class="nav-links">
             <li><a href="admin_dashboard.php" class="active"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
             <li><a href="#"><i class="fa-regular fa-calendar-check"></i> Appointments</a></li>
-            <li><a href="#"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
+            <li><a href="job_orders.php"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
             <li><a href="#"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
             <li><a href="#"><i class="fa-solid fa-users"></i> Clients</a></li>
-            <li><a href="#"><i class="fa-solid fa-box"></i> Inventory</a></li>
+            <li><a href="inventory.php"><i class="fa-solid fa-box"></i> Inventory</a></li>
             <li><a href="#"><i class="fa-regular fa-bell"></i> Notifications</a></li>
             <li><a href="#"><i class="fa-solid fa-gear"></i> Settings</a></li>
         </ul>
@@ -265,7 +271,7 @@ $adminName = $_SESSION['username'] ?? 'Admin';
                 <h4><?php echo htmlspecialchars($adminName); ?></h4>
                 <p>Admin</p>
             </div>
-            <a href="logout.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+            <a href="index.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
         </div>
     </aside>
 
