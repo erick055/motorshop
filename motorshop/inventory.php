@@ -509,14 +509,14 @@ $adminEmail = 'Email';
         </div>
 
         <ul class="nav-links">
-            <li><a href="admin_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
-            <li><a href="#"><i class="fa-regular fa-calendar-check"></i> Appointments</a></li>
+           <li><a href="admin_dashboard.php" class="active"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
+            <li><a href="appointments.php"><i class="fa-regular fa-calendar-check"></i> Appointments</a></li>
             <li><a href="job_orders.php"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
-            <li><a href="#"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
-            <li><a href="#"><i class="fa-solid fa-users"></i> Clients</a></li>
-            <li><a href="inventory.php" class="active"><i class="fa-solid fa-box"></i> Inventory</a></li>
-            <li><a href="#"><i class="fa-regular fa-bell"></i> Notifications</a></li>
-            <li><a href="#"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li><a href="invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
+            <li><a href="clients.php"><i class="fa-solid fa-users"></i> Clients</a></li>
+            <li><a href="inventory.php"><i class="fa-solid fa-box"></i> Inventory</a></li>
+            <li><a href="notifications.php"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+            <li><a href="settings.php"><i class="fa-solid fa-gear"></i> Settings</a></li>
         </ul>
 
         <div class="user-profile-container">

@@ -1,52 +1,51 @@
 <?php
 session_start();
 
-// Security check: Ensure the user is logged in and has the 'Admin' role
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: login.php");
     exit();
 }
 
-// Get the logged-in user's name (fallback to 'Admin' if not set)
-$adminName = $_SESSION['username'] ?? 'Admin';
+$adminName = $_SESSION['username'] ?? 'Name';
+$adminEmail = 'Email'; 
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - ServiceHub</title>
+    <title>Notifications - ServiceHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             box-sizing: border-box;
         }
+
         :root {
             --sidebar-bg: #101623;
             --sidebar-hover: #1f2937;
             --primary-orange: #FF7A00;
-            --bg-light: #f3f4f6;
+            --bg-light: #f9fafb;
             --text-dark: #1f2937;
             --text-muted: #6b7280;
             --border-color: #e5e7eb;
         }
 
-       body, html {
+        body, html {
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-light);
             display: flex;
             height: 100vh;
-            width: 100vw; /* Forces the body to span the entire screen width */
+            width: 100vw;
             overflow: hidden;
         }
 
         /* Sidebar Styles */
-       .sidebar {
+        .sidebar {
             width: 250px;
-            flex-shrink: 0; /* Prevents sidebar from shrinking */
+            flex-shrink: 0;
             background-color: var(--sidebar-bg);
             color: #fff;
             display: flex;
@@ -113,13 +112,17 @@ $adminName = $_SESSION['username'] ?? 'Admin';
             font-weight: bold;
         }
 
-        /* User Profile in Sidebar */
-        .user-profile {
-            padding: 20px;
+        /* User Profile */
+        .user-profile-container {
             border-top: 1px solid #1f2937;
+            padding: 15px 20px;
+        }
+
+        .user-profile {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 15px;
         }
 
         .avatar {
@@ -132,23 +135,55 @@ $adminName = $_SESSION['username'] ?? 'Admin';
             justify-content: center;
             align-items: center;
             font-weight: bold;
+            font-size: 16px;
         }
 
-        .user-info { flex-grow: 1; }
-        .user-info h4 { margin: 0; font-size: 14px; }
-        .user-info p { margin: 0; font-size: 11px; color: #8b949e; }
-        
+        .user-info {
+            flex-grow: 1;
+        }
+
+        .user-info h4 {
+            margin: 0;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-badge {
+            background-color: #ff7b72;
+            color: white;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        .user-info p {
+            margin: 2px 0 0 0;
+            font-size: 10px;
+            color: #8b949e;
+        }
+
         .logout-btn {
             color: #c9d1d9;
             text-decoration: none;
             transition: 0.2s;
         }
-        .logout-btn:hover { color: #ff7b72; }
 
-        /* Main Content Area */
-       .main-content {
-            flex: 1; /* Tells it to take up all remaining flex space */
-            width: calc(100% - 250px); /* Strictly sets the width to fill the gap */
+        .logout-btn:hover {
+            color: #ff7b72;
+        }
+
+        .app-version {
+            font-size: 9px;
+            color: #4b5563;
+            text-align: left;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            width: calc(100% - 250px);
             padding: 30px 40px;
             overflow-y: auto;
         }
@@ -157,89 +192,101 @@ $adminName = $_SESSION['username'] ?? 'Admin';
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .top-header h1 {
             margin: 0 0 5px 0;
-            font-size: 24px;
+            font-size: 22px;
             color: var(--text-dark);
         }
 
         .top-header p {
             margin: 0;
             color: var(--text-muted);
-            font-size: 14px;
+            font-size: 13px;
         }
 
-        .btn-primary {
-            background-color: var(--primary-orange);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-        }
-
-        /* Stats Cards */
+        /* Stats & Controls */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
         .stat-card {
             background: #fff;
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 6px;
             border: 1px solid var(--border-color);
-            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
         .stat-card h3 {
             margin: 0;
-            font-size: 28px;
-            color: var(--primary-orange);
-        }
-
-        .stat-card p {
-            margin: 5px 0 0 0;
-            font-size: 13px;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* Charts/Lower Section */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .chart-card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            min-height: 250px;
-        }
-
-        .chart-card h4 {
-            margin: 0 0 5px 0;
-            font-size: 16px;
+            font-size: 14px;
             color: var(--text-dark);
+            text-align: left;
         }
 
-        .chart-card p {
-            margin: 0 0 20px 0;
+        .controls-row {
+            margin-bottom: 20px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 20px;
             font-size: 12px;
-            color: var(--text-muted);
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            border-color: var(--text-dark);
+        }
+
+        /* Notification Items */
+        .notification-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: #fff;
+            gap: 15px;
+        }
+
+        .notification-item i {
+            font-size: 18px;
+        }
+
+        .notif-alert i {
+            color: #ef4444;
+        }
+
+        .notif-warning i {
+            color: #f59e0b;
+        }
+
+        .notification-item div {
+            font-size: 13px;
         }
     </style>
 </head>
@@ -255,68 +302,72 @@ $adminName = $_SESSION['username'] ?? 'Admin';
         </div>
 
         <ul class="nav-links">
-            <li><a href="admin_dashboard.php" class="active"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
+            <li><a href="admin_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
             <li><a href="appointments.php"><i class="fa-regular fa-calendar-check"></i> Appointments</a></li>
             <li><a href="job_orders.php"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
             <li><a href="invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
             <li><a href="clients.php"><i class="fa-solid fa-users"></i> Clients</a></li>
             <li><a href="inventory.php"><i class="fa-solid fa-box"></i> Inventory</a></li>
-            <li><a href="notifications.php"><i class="fa-regular fa-bell"></i> Notifications</a></li>
+            <li><a href="notifications.php" class="active"><i class="fa-regular fa-bell"></i> Notifications</a></li>
             <li><a href="settings.php"><i class="fa-solid fa-gear"></i> Settings</a></li>
         </ul>
 
-        <div class="user-profile">
-            <div class="avatar"><?php echo strtoupper(substr($adminName, 0, 1)); ?></div>
-            <div class="user-info">
-                <h4><?php echo htmlspecialchars($adminName); ?></h4>
-                <p>Admin</p>
+        <div class="user-profile-container">
+            <div class="user-profile">
+                <div class="avatar"><?php echo strtoupper(substr($adminName, 0, 1)); ?></div>
+                <div class="user-info">
+                    <h4><?php echo htmlspecialchars($adminName); ?> <span class="admin-badge">Admin</span></h4>
+                    <p><?php echo htmlspecialchars($adminEmail); ?></p>
+                </div>
+                <a href="logout.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
             </div>
-            <a href="index.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+            <div class="app-version">Workshop Manager v1.0</div>
         </div>
     </aside>
 
     <main class="main-content">
         <div class="top-header">
             <div>
-                <h1>Dashboard</h1>
-                <p>Welcome back! Here is your workshop overview.</p>
+                <h1>Notification</h1>
+                <p>System alert and important updates</p>
             </div>
-            <button class="btn-primary"><i class="fa-solid fa-plus"></i> Add Item</button>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3>0</h3>
-                <p>Total Appointment</p>
+                <h3>Total Signal</h3>
             </div>
             <div class="stat-card">
-                <h3>0</h3>
-                <p>Active Jobs</p>
+                <h3>Unread</h3>
             </div>
             <div class="stat-card">
-                <h3>0</h3>
-                <p>Total Client</p>
+                <h3>Alerts</h3>
             </div>
             <div class="stat-card">
-                <h3>0</h3>
-                <p>Monthly Revenue</p>
+                <h3>Success</h3>
             </div>
         </div>
 
-        <div class="charts-grid">
-            <div class="chart-card">
-                <h4>Appointment Trends</h4>
-                <p>Monthly appointment vs complete jobs</p>
-                <div style="height: 150px; display:flex; align-items:center; justify-content:center; color:#e5e7eb;">
-                    <i class="fa-solid fa-chart-line fa-3x"></i>
+        <div class="controls-row">
+            <div class="filters">
+                <button class="filter-btn">All</button>
+                <button class="filter-btn active">Unread (2)</button>
+                <button class="filter-btn">Alerts</button>
+                <button class="filter-btn">Warning</button>
+            </div>
+        </div>
+
+        <div class="notification-list">
+            <div class="notification-item notif-alert">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <div>
+                    <strong>Low Inventory Alert</strong>
                 </div>
             </div>
-            
-            <div class="chart-card">
-                <h4>Weekly Revenue</h4>
-                <p>Revenue trends for the current month</p>
-                <div style="height: 150px; display:flex; align-items:center; justify-content:center; color:#e5e7eb;">
-                    <i class="fa-solid fa-chart-bar fa-3x"></i>
+            <div class="notification-item notif-warning">
+                <i class="fa-regular fa-clock"></i>
+                <div>
+                    <strong>Appointment Reminder</strong>
                 </div>
             </div>
         </div>
