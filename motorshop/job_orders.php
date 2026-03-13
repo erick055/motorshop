@@ -286,9 +286,9 @@ $adminEmail = 'Email'; // You can fetch this from DB if needed, using a placehol
         </div>
 
         <ul class="nav-links">
-          <li><a href="admin_dashboard.php" class="active"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
+          <li><a href="admin_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
             <li><a href="appointments.php"><i class="fa-regular fa-calendar-check"></i> Appointments</a></li>
-            <li><a href="job_orders.php"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
+            <li><a href="job_orders.php" class="active"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
             <li><a href="invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
             <li><a href="clients.php"><i class="fa-solid fa-users"></i> Clients</a></li>
             <li><a href="inventory.php"><i class="fa-solid fa-box"></i> Inventory</a></li>
@@ -303,7 +303,7 @@ $adminEmail = 'Email'; // You can fetch this from DB if needed, using a placehol
                     <h4><?php echo htmlspecialchars($adminName); ?> <span class="admin-badge">Admin</span></h4>
                     <p><?php echo htmlspecialchars($adminEmail); ?></p>
                 </div>
-                <a href="logout.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+                <a href="index.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
             </div>
             <div class="app-version">Workshop Manager v1.0</div>
         </div>

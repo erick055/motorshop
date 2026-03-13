@@ -1,20 +1,20 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
     exit();
 }
 
-$adminName = $_SESSION['username'] ?? 'Name';
-$adminEmail = 'Email'; 
+$customerName = $_SESSION['username'] ?? 'Customer Name';
+$customerEmail = 'customer@email.com'; 
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoices - ServiceHub</title>
+    <title>Service History - ServiceHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -112,7 +112,6 @@ $adminEmail = 'Email';
             font-weight: bold;
         }
 
-        /* User Profile */
         .user-profile-container {
             border-top: 1px solid #1f2937;
             padding: 15px 20px;
@@ -122,7 +121,6 @@ $adminEmail = 'Email';
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 15px;
         }
 
         .avatar {
@@ -150,8 +148,8 @@ $adminEmail = 'Email';
             gap: 8px;
         }
 
-        .admin-badge {
-            background-color: #ff7b72;
+        .customer-badge {
+            background-color: #3b82f6;
             color: white;
             font-size: 9px;
             padding: 2px 6px;
@@ -172,12 +170,6 @@ $adminEmail = 'Email';
 
         .logout-btn:hover {
             color: #ff7b72;
-        }
-
-        .app-version {
-            font-size: 9px;
-            color: #4b5563;
-            text-align: left;
         }
 
         /* Main Content */
@@ -205,35 +197,6 @@ $adminEmail = 'Email';
             margin: 0;
             color: var(--text-muted);
             font-size: 13px;
-        }
-
-        /* Stats & Search */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            text-align: left;
-        }
-
-        .stat-card p {
-            margin: 0 0 10px 0;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .stat-card h3 {
-            margin: 0;
-            font-size: 20px;
-            color: var(--text-dark);
         }
 
         .search-container {
@@ -265,25 +228,12 @@ $adminEmail = 'Email';
             font-size: 13px;
         }
 
-        /* Table Card */
         .table-card {
             background: #fff;
             border-radius: 8px;
             border: 1px solid var(--border-color);
             padding: 20px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        .table-card-header {
-            margin-bottom: 15px;
-        }
-
-        .table-card-header h2 {
-            margin: 0;
-            font-size: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .table-wrapper {
@@ -299,12 +249,13 @@ $adminEmail = 'Email';
         }
 
         th {
-            background-color: var(--sidebar-bg);
-            color: white;
+            background-color: #f9fafb;
+            color: var(--text-dark);
             padding: 12px 15px;
             text-align: left;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
         }
 
         td {
@@ -321,81 +272,63 @@ $adminEmail = 'Email';
         <div class="sidebar-header">
             <i class="fa-solid fa-wrench" style="color: var(--primary-orange); font-size: 20px;"></i>
             <div>
-                <h2>Name</h2>
-                <p>Workshop Management</p>
+                <h2>ServiceHub</h2>
+                <p>Customer Portal</p>
             </div>
         </div>
 
         <ul class="nav-links">
-            <li><a href="admin_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
-            <li><a href="appointments.php"><i class="fa-regular fa-calendar-check"></i> Appointments</a></li>
-            <li><a href="job_orders.php"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
-            <li><a href="invoices.php" class="active"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
-            <li><a href="clients.php"><i class="fa-solid fa-users"></i> Clients</a></li>
-            <li><a href="inventory.php"><i class="fa-solid fa-box"></i> Inventory</a></li>
-            <li><a href="notifications.php"><i class="fa-regular fa-bell"></i> Notifications</a></li>
-            <li><a href="settings.php"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li><a href="customer_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
+            <li><a href="my_vehicles.php"><i class="fa-solid fa-car"></i> My Vehicles</a></li>
+            <li><a href="book_appointment.php"><i class="fa-regular fa-calendar-plus"></i> Book Appointment</a></li>
+            <li><a href="service_history.php" class="active"><i class="fa-solid fa-clock-rotate-left"></i> Service History</a></li>
+            <li><a href="my_invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
+            <li><a href="support.php"><i class="fa-regular fa-circle-question"></i> Support</a></li>
+            <li><a href="customer_profile.php"><i class="fa-regular fa-user"></i> Profile</a></li>
         </ul>
 
         <div class="user-profile-container">
             <div class="user-profile">
-                <div class="avatar"><?php echo strtoupper(substr($adminName, 0, 1)); ?></div>
+                <div class="avatar"><?php echo strtoupper(substr($customerName, 0, 1)); ?></div>
                 <div class="user-info">
-                    <h4><?php echo htmlspecialchars($adminName); ?> <span class="admin-badge">Admin</span></h4>
-                    <p><?php echo htmlspecialchars($adminEmail); ?></p>
+                    <h4><?php echo htmlspecialchars($customerName); ?> <span class="customer-badge">Customer</span></h4>
+                    <p><?php echo htmlspecialchars($customerEmail); ?></p>
                 </div>
-                <a href="index.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+                <a href="logout.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
             </div>
-            <div class="app-version">Workshop Manager v1.0</div>
         </div>
     </aside>
 
     <main class="main-content">
         <div class="top-header">
             <div>
-                <h1>Invoices</h1>
-                <p>Manage billing and payment records</p>
-            </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <p>Total Revenue</p>
-                <h3>₱0.00</h3>
-            </div>
-            <div class="stat-card">
-                <p>Pending Amount</p>
-                <h3>₱0.00</h3>
-            </div>
-            <div class="stat-card">
-                <p>Overdue Amount</p>
-                <h3>₱0.00</h3>
+                <h1>Service History</h1>
+                <p>View past services and maintenance records</p>
             </div>
         </div>
 
         <div class="search-container">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Search Invoices...">
+            <input type="text" placeholder="Search history...">
         </div>
 
         <div class="table-card">
-            <div class="table-card-header">
-                <h2><i class="fa-solid fa-file-invoice"></i> Invoices Records</h2>
-            </div>
             <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
-                            <th>Invoice ID</th>
-                            <th>Client</th>
                             <th>Date</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                            <th>Vehicle</th>
+                            <th>Service Description</th>
+                            <th>Cost</th>
+                            <th>Invoice</th>
                         </tr>
                     </thead>
                     <tbody>
-                        </tbody>
+                        <tr>
+                            <td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted);">No service history found.</td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>

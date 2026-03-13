@@ -1,20 +1,20 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
     exit();
 }
 
-$adminName = $_SESSION['username'] ?? 'Name';
-$adminEmail = 'Email'; 
+$customerName = $_SESSION['username'] ?? 'Customer Name';
+$customerEmail = 'customer@email.com'; 
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoices - ServiceHub</title>
+    <title>Customer Dashboard - ServiceHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -112,7 +112,6 @@ $adminEmail = 'Email';
             font-weight: bold;
         }
 
-        /* User Profile */
         .user-profile-container {
             border-top: 1px solid #1f2937;
             padding: 15px 20px;
@@ -122,7 +121,6 @@ $adminEmail = 'Email';
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 15px;
         }
 
         .avatar {
@@ -150,8 +148,8 @@ $adminEmail = 'Email';
             gap: 8px;
         }
 
-        .admin-badge {
-            background-color: #ff7b72;
+        .customer-badge {
+            background-color: #3b82f6;
             color: white;
             font-size: 9px;
             padding: 2px 6px;
@@ -172,12 +170,6 @@ $adminEmail = 'Email';
 
         .logout-btn:hover {
             color: #ff7b72;
-        }
-
-        .app-version {
-            font-size: 9px;
-            color: #4b5563;
-            text-align: left;
         }
 
         /* Main Content */
@@ -207,65 +199,69 @@ $adminEmail = 'Email';
             font-size: 13px;
         }
 
-        /* Stats & Search */
+        .btn-primary {
+            background-color: var(--primary-orange);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #e66a00;
+        }
+
+        /* Stats Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+            gap: 20px;
             margin-bottom: 20px;
         }
 
         .stat-card {
             background: #fff;
             padding: 20px;
-            border-radius: 6px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            text-align: left;
-        }
-
-        .stat-card p {
-            margin: 0 0 10px 0;
-            font-size: 12px;
-            color: var(--text-muted);
         }
 
         .stat-card h3 {
-            margin: 0;
-            font-size: 20px;
+            margin: 0 0 5px 0;
+            font-size: 24px;
+            color: var(--primary-orange);
+        }
+
+        .stat-card span {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
             color: var(--text-dark);
+            font-weight: 600;
         }
 
-        .search-container {
-            position: relative;
-            max-width: 300px;
-            margin-bottom: 20px;
+        .stat-card p {
+            margin: 0;
+            font-size: 11px;
+            color: var(--text-muted);
         }
 
-        .search-container input {
-            width: 100%;
-            padding: 10px 35px;
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            background-color: #f3f4f6;
-            font-size: 13px;
-            outline: none;
+        /* Tables Grid */
+        .dashboard-tables {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
 
-        .search-container input:focus {
-            border-color: var(--primary-orange);
-        }
-
-        .search-container .fa-magnifying-glass {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-            font-size: 13px;
-        }
-
-        /* Table Card */
         .table-card {
             background: #fff;
             border-radius: 8px;
@@ -274,23 +270,18 @@ $adminEmail = 'Email';
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
-        .table-card-header {
-            margin-bottom: 15px;
-        }
-
-        .table-card-header h2 {
-            margin: 0;
+        .table-card h2 {
+            margin: 0 0 15px 0;
             font-size: 15px;
             display: flex;
             align-items: center;
             gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
         }
 
         .table-wrapper {
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            overflow: hidden;
-            min-height: 400px;
+            overflow-x: auto;
         }
 
         table {
@@ -299,19 +290,24 @@ $adminEmail = 'Email';
         }
 
         th {
-            background-color: var(--sidebar-bg);
-            color: white;
-            padding: 12px 15px;
+            background-color: #f9fafb;
+            color: var(--text-muted);
+            padding: 10px;
             text-align: left;
-            font-size: 13px;
-            font-weight: 500;
+            font-size: 12px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
         }
 
         td {
-            padding: 12px 15px;
+            padding: 10px;
             border-bottom: 1px solid var(--border-color);
             font-size: 13px;
             color: var(--text-dark);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
         }
     </style>
 </head>
@@ -321,82 +317,102 @@ $adminEmail = 'Email';
         <div class="sidebar-header">
             <i class="fa-solid fa-wrench" style="color: var(--primary-orange); font-size: 20px;"></i>
             <div>
-                <h2>Name</h2>
-                <p>Workshop Management</p>
+                <h2>ServiceHub</h2>
+                <p>Customer Portal</p>
             </div>
         </div>
 
         <ul class="nav-links">
-            <li><a href="admin_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
-            <li><a href="appointments.php"><i class="fa-regular fa-calendar-check"></i> Appointments</a></li>
-            <li><a href="job_orders.php"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
-            <li><a href="invoices.php" class="active"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
-            <li><a href="clients.php"><i class="fa-solid fa-users"></i> Clients</a></li>
-            <li><a href="inventory.php"><i class="fa-solid fa-box"></i> Inventory</a></li>
-            <li><a href="notifications.php"><i class="fa-regular fa-bell"></i> Notifications</a></li>
-            <li><a href="settings.php"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li><a href="customer_dashboard.php" class="active"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
+            <li><a href="my_vehicles.php"><i class="fa-solid fa-car"></i> My Vehicles</a></li>
+            <li><a href="book_appointment.php"><i class="fa-regular fa-calendar-plus"></i> Book Appointment</a></li>
+            <li><a href="service_history.php"><i class="fa-solid fa-clock-rotate-left"></i> Service History</a></li>
+            <li><a href="my_invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
+            <li><a href="support.php"><i class="fa-regular fa-circle-question"></i> Support</a></li>
+            <li><a href="customer_profile.php"><i class="fa-regular fa-user"></i> Profile</a></li>
         </ul>
 
         <div class="user-profile-container">
             <div class="user-profile">
-                <div class="avatar"><?php echo strtoupper(substr($adminName, 0, 1)); ?></div>
+                <div class="avatar"><?php echo strtoupper(substr($customerName, 0, 1)); ?></div>
                 <div class="user-info">
-                    <h4><?php echo htmlspecialchars($adminName); ?> <span class="admin-badge">Admin</span></h4>
-                    <p><?php echo htmlspecialchars($adminEmail); ?></p>
+                    <h4><?php echo htmlspecialchars($customerName); ?> <span class="customer-badge">Customer</span></h4>
+                    <p><?php echo htmlspecialchars($customerEmail); ?></p>
                 </div>
-                <a href="index.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+                <a href="logout.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
             </div>
-            <div class="app-version">Workshop Manager v1.0</div>
         </div>
     </aside>
 
     <main class="main-content">
         <div class="top-header">
             <div>
-                <h1>Invoices</h1>
-                <p>Manage billing and payment records</p>
+                <h1>Customer Dashboard</h1>
+                <p>Welcome back! Here is your vehicle overview.</p>
             </div>
+            <a href="book_appointment.php" class="btn-primary"><i class="fa-solid fa-plus"></i> Book Appointment</a>
         </div>
 
         <div class="stats-grid">
             <div class="stat-card">
-                <p>Total Revenue</p>
-                <h3>₱0.00</h3>
+                <h3>0</h3>
+                <span>Active Appointments</span>
+                <p>Upcoming service</p>
             </div>
             <div class="stat-card">
-                <p>Pending Amount</p>
-                <h3>₱0.00</h3>
+                <h3>0</h3>
+                <span>Total Vehicles</span>
+                <p>Registered vehicles</p>
             </div>
             <div class="stat-card">
-                <p>Overdue Amount</p>
                 <h3>₱0.00</h3>
+                <span>Pending Invoices</span>
+                <p>Unpaid amount</p>
             </div>
         </div>
 
-        <div class="search-container">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Search Invoices...">
-        </div>
-
-        <div class="table-card">
-            <div class="table-card-header">
-                <h2><i class="fa-solid fa-file-invoice"></i> Invoices Records</h2>
-            </div>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Invoice ID</th>
-                            <th>Client</th>
-                            <th>Date</th>
-                            <th>Amount</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+        <div class="dashboard-tables">
+            <div class="table-card">
+                <h2><i class="fa-regular fa-calendar"></i> Recent Appointments</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Vehicle</th>
+                                <th>Service</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;">No recent appointments found.</td>
+                            </tr>
                         </tbody>
-                </table>
+                    </table>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <h2><i class="fa-solid fa-file-invoice"></i> Active Invoices</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Invoice ID</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">No active invoices found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
