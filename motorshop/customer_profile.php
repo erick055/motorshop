@@ -1,13 +1,13 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
     exit();
 }
 
-$adminName = $_SESSION['username'] ?? 'Name';
-$adminEmail = 'Email'; 
+$customerName = $_SESSION['username'] ?? 'Customer Name';
+$customerEmail = 'customer@email.com'; 
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -106,14 +106,12 @@ $adminEmail = 'Email';
             color: #fff;
         }
 
-        /* Notice Profile has no active link in the mockup, but we'll leave it neutral */
         .nav-links a.active {
             background-color: var(--primary-orange);
             color: #fff;
             font-weight: bold;
         }
 
-        /* User Profile */
         .user-profile-container {
             border-top: 1px solid #1f2937;
             padding: 15px 20px;
@@ -123,7 +121,6 @@ $adminEmail = 'Email';
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 15px;
         }
 
         .avatar {
@@ -151,8 +148,8 @@ $adminEmail = 'Email';
             gap: 8px;
         }
 
-        .admin-badge {
-            background-color: #ff7b72;
+        .customer-badge {
+            background-color: #3b82f6;
             color: white;
             font-size: 9px;
             padding: 2px 6px;
@@ -173,12 +170,6 @@ $adminEmail = 'Email';
 
         .logout-btn:hover {
             color: #ff7b72;
-        }
-
-        .app-version {
-            font-size: 9px;
-            color: #4b5563;
-            text-align: left;
         }
 
         /* Main Content */
@@ -208,7 +199,7 @@ $adminEmail = 'Email';
             font-size: 13px;
         }
 
-        /* Profile specific */
+        /* Profile Layout */
         .outline-card {
             background: #fff;
             border: 1px solid var(--border-color);
@@ -256,6 +247,7 @@ $adminEmail = 'Email';
             border-radius: 4px;
             font-size: 13px;
             outline: none;
+            background-color: #f9fafb;
         }
 
         .outline-card h3 {
@@ -347,32 +339,30 @@ $adminEmail = 'Email';
         <div class="sidebar-header">
             <i class="fa-solid fa-wrench" style="color: var(--primary-orange); font-size: 20px;"></i>
             <div>
-                <h2>Name</h2>
-                <p>Workshop Management</p>
+                <h2>ServiceHub</h2>
+                <p>Customer Portal</p>
             </div>
         </div>
 
         <ul class="nav-links">
-            <li><a href="admin_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
-            <li><a href="appointments.php"><i class="fa-regular fa-calendar-check"></i> Appointments</a></li>
-            <li><a href="job_orders.php"><i class="fa-solid fa-clipboard-list"></i> Job Orders</a></li>
-            <li><a href="invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
-            <li><a href="clients.php"><i class="fa-solid fa-users"></i> Clients</a></li>
-            <li><a href="inventory.php"><i class="fa-solid fa-box"></i> Inventory</a></li>
-            <li><a href="notifications.php"><i class="fa-regular fa-bell"></i> Notifications</a></li>
-            <li><a href="settings.php"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li><a href="customer_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
+            <li><a href="my_vehicles.php"><i class="fa-solid fa-car"></i> My Vehicles</a></li>
+            <li><a href="book_appointment.php"><i class="fa-regular fa-calendar-plus"></i> Book Appointment</a></li>
+            <li><a href="service_history.php"><i class="fa-solid fa-clock-rotate-left"></i> Service History</a></li>
+            <li><a href="my_invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
+            <li><a href="support.php"><i class="fa-regular fa-circle-question"></i> Support</a></li>
+            <li><a href="customer_profile.php" class="active"><i class="fa-regular fa-user"></i> Profile</a></li>
         </ul>
 
         <div class="user-profile-container">
             <div class="user-profile">
-                <div class="avatar"><?php echo strtoupper(substr($adminName, 0, 1)); ?></div>
+                <div class="avatar"><?php echo strtoupper(substr($customerName, 0, 1)); ?></div>
                 <div class="user-info">
-                    <h4><?php echo htmlspecialchars($adminName); ?> <span class="admin-badge">Admin</span></h4>
-                    <p><?php echo htmlspecialchars($adminEmail); ?></p>
+                    <h4><?php echo htmlspecialchars($customerName); ?> <span class="customer-badge">Customer</span></h4>
+                    <p><?php echo htmlspecialchars($customerEmail); ?></p>
                 </div>
-                <a href="index.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+                <a href="logout.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
             </div>
-            <div class="app-version">Workshop Manager v1.0</div>
         </div>
     </aside>
 
@@ -386,16 +376,16 @@ $adminEmail = 'Email';
 
         <div class="outline-card profile-summary">
             <div class="profile-large-avatar">
-                <?php echo strtoupper(substr($adminName, 0, 1)); ?>
+                <?php echo strtoupper(substr($customerName, 0, 1)); ?>
             </div>
             <div>
                 <div class="profile-info-row">
                     <i class="fa-solid fa-shield-halved"></i>
-                    <span class="admin-badge" style="margin-left: 0; padding: 4px 10px; font-size: 11px;">Admin</span>
+                    <span class="customer-badge" style="margin-left: 0; padding: 4px 10px; font-size: 11px;">Customer</span>
                 </div>
                 <div class="profile-info-row">
                     <i class="fa-solid fa-envelope"></i>
-                    <input type="text" placeholder="Email:" disabled>
+                    <input type="text" value="<?php echo htmlspecialchars($customerEmail); ?>" disabled>
                 </div>
                 <div class="profile-info-row">
                     <i class="fa-regular fa-calendar"></i>
@@ -412,11 +402,11 @@ $adminEmail = 'Email';
                 <div class="form-row">
                     <div class="form-group">
                         <label>Full Name</label>
-                        <input type="text" placeholder="Name">
+                        <input type="text" placeholder="Name" value="<?php echo htmlspecialchars($customerName); ?>">
                     </div>
                     <div class="form-group">
-                        <label>Email Address</label>
-                        <input type="email" placeholder="Email">
+                        <label>Phone Number</label>
+                        <input type="text" placeholder="e.g. (09XX) XXX-XXXX">
                     </div>
                 </div>
                 <button type="submit" class="btn-purple"><i class="fa-solid fa-gear"></i> Save changes</button>

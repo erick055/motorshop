@@ -319,7 +319,7 @@ $adminEmail = 'Email';
                     <h4><?php echo htmlspecialchars($adminName); ?> <span class="admin-badge">Admin</span></h4>
                     <p><?php echo htmlspecialchars($adminEmail); ?></p>
                 </div>
-                <a href="logout.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
+                <a href="index.php" class="logout-btn" title="Logout"><i class="fa-solid fa-arrow-right-from-bracket"></i></a>
             </div>
             <div class="app-version">Workshop Manager v1.0</div>
         </div>
