@@ -1,5 +1,6 @@
 <?php
 session_start();
+require 'db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
@@ -8,6 +9,26 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
 
 $customerName = $_SESSION['username'] ?? 'Customer Name';
 $customerEmail = 'customer@email.com'; 
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['make_model'])) {
+    $user_id = $_SESSION['user_id'];
+    $make_model = $_POST['make_model'];
+    $year = $_POST['year'];
+    $plate_number = $_POST['plate_number'];
+    $engine_type = $_POST['engine_type'];
+    $vin = !empty($_POST['vin']) ? $_POST['vin'] : null;
+    $notes = !empty($_POST['notes']) ? $_POST['notes'] : null;
+
+    try {
+        $stmt = $pdo->prepare("INSERT INTO vehicles (user_id, make_model, year, plate_number, engine_type, vin, notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$user_id, $make_model, $year, $plate_number, $engine_type, $vin, $notes]);
+        // Refresh to avoid re-submitting data on page reload
+        header("Location: my_vehicles.php?success=1"); 
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error adding vehicle: " . $e->getMessage();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -451,9 +472,28 @@ $customerEmail = 'customer@email.com';
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">No vehicles registered.</td>
-                        </tr>
+                        <?php
+                        $stmt = $pdo->prepare("SELECT * FROM vehicles WHERE user_id = ? ORDER BY created_at DESC");
+                        $stmt->execute([$_SESSION['user_id']]);
+                        $vehicles = $stmt->fetchAll();
+
+                        if (count($vehicles) > 0) {
+                            foreach ($vehicles as $vehicle) {
+                                echo "<tr>";
+                                echo "<td>" . htmlspecialchars($vehicle['make_model']) . "</td>";
+                                echo "<td>" . htmlspecialchars($vehicle['year']) . "</td>";
+                                echo "<td>" . htmlspecialchars($vehicle['plate_number']) . "</td>";
+                                echo "<td>-</td>"; // Placeholder for Next Service
+                                echo "<td style='color: #10b981;'>Active</td>";
+                                echo "<td>
+                                        <button class='btn-primary' style='padding: 5px 10px; font-size: 11px;'><i class='fa-solid fa-pen'></i> Edit</button>
+                                    </td>";
+                                echo "</tr>";
+                            }
+                        } else {
+                            echo "<tr><td colspan='6' style='text-align:center; padding: 20px; color: var(--text-muted);'>No vehicles registered.</td></tr>";
+                        }
+                        ?>
                     </tbody>
                 </table>
             </div>
