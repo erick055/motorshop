@@ -1,5 +1,6 @@
 <?php
 session_start();
+require 'db.php'; // Include database connection
 
 // Security check: Ensure the user is logged in and has the 'Admin' role
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
@@ -7,9 +8,23 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     exit();
 }
 
-// Get the logged-in user's details
-$adminName = $_SESSION['username'] ?? 'Name';
-$adminEmail = 'Email'; 
+$adminName = $_SESSION['username'] ?? 'Admin';
+$adminEmail = 'admin@gmail.com'; 
+
+// Handle Appointment Status Update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
+    $appointment_id = $_POST['appointment_id'];
+    $new_status = $_POST['status'];
+
+    try {
+        $stmt = $pdo->prepare("UPDATE appointments SET status = ? WHERE id = ?");
+        $stmt->execute([$new_status, $appointment_id]);
+        header("Location: appointments.php?success=1");
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error updating status: " . $e->getMessage();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -253,6 +268,140 @@ $adminEmail = 'Email';
             color: #9ca3af;
             font-size: 13px;
         }
+                /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table th {
+            background-color: #f9fafb;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+        .data-table tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+
+        /* Status Select Form */
+        .status-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-select {
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+        }
+        .status-select.Pending { color: #f59e0b; background: #fffbeb; border-color: #fcd34d; }
+        .status-select.Confirmed { color: #3b82f6; background: #eff6ff; border-color: #bfdbfe; }
+        .status-select.Completed { color: #10b981; background: #ecfdf5; border-color: #a7f3d0; }
+        .status-select.Cancelled { color: #ef4444; background: #fef2f2; border-color: #fecaca; }
+
+        .btn-update {
+            background: var(--text-dark);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: 0.2s;
+        }
+        .btn-update:hover {
+            background: var(--primary-orange);
+        }
+        /* Weekly Calendar Styles */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .cal-col {
+            background: #f9fafb;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .cal-day-header {
+            background: #f3f4f6;
+            padding: 10px 5px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .cal-day-body {
+            padding: 8px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            max-height: 250px;
+        }
+        .cal-appt {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--border-color);
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        /* Color code the calendar cards based on status */
+        .cal-appt.Pending { border-left-color: #f59e0b; }
+        .cal-appt.Confirmed { border-left-color: #3b82f6; }
+        .cal-appt.Completed { border-left-color: #10b981; }
+        .cal-appt.Cancelled { border-left-color: #ef4444; background-color: #fef2f2; }
+
+        .cal-time {
+            font-weight: 700;
+            color: var(--text-dark);
+            display: block;
+            margin-bottom: 2px;
+        }
+        .cal-detail {
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        /* Highlight Today */
+        .today-col {
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 0 1px var(--primary-orange);
+        }
+        .today-col .cal-day-header {
+            background: var(--primary-orange);
+            color: white;
+            border-bottom: none;
+        }
     </style>
 </head>
 <body>
@@ -298,18 +447,153 @@ $adminEmail = 'Email';
             </div>
         </div>
 
-        <div class="outline-card" style="min-height: 250px;">
-            <h3>Weekly Calendar</h3>
+        <div class="outline-card">
+            <?php
+            // 1. Calculate the dates for the current week (Monday to Sunday)
+            $currentDate = new DateTime();
+            $dayOfWeek = $currentDate->format('N'); // 1 (Mon) through 7 (Sun)
+            $startOfWeek = clone $currentDate;
+            $startOfWeek->modify('-' . ($dayOfWeek - 1) . ' days');
+            
+            $weekDays = [];
+            for ($i = 0; $i < 7; $i++) {
+                $day = clone $startOfWeek;
+                $day->modify("+$i days");
+                $weekDays[] = $day->format('Y-m-d');
+            }
+
+            // 2. Fetch all appointments for these 7 days
+            $placeholders = implode(',', array_fill(0, count($weekDays), '?'));
+            $calQuery = "
+                SELECT a.appointment_date, a.appointment_time, u.full_name, v.make_model, a.status
+                FROM appointments a
+                JOIN users u ON a.user_id = u.id
+                JOIN vehicles v ON a.vehicle_id = v.id
+                WHERE a.appointment_date IN ($placeholders)
+                ORDER BY a.appointment_time ASC
+            ";
+            $calStmt = $pdo->prepare($calQuery);
+            $calStmt->execute($weekDays);
+            
+            // FETCH_GROUP automatically groups the results by the first column (appointment_date)
+            $weekAppointments = $calStmt->fetchAll(PDO::FETCH_GROUP | PDO::FETCH_ASSOC);
+            ?>
+
+            <div class="calendar-header">
+                <h3><i class="fa-regular fa-calendar-week"></i> Weekly Calendar</h3>
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-muted); background: #f3f4f6; padding: 4px 10px; border-radius: 12px;">
+                    <?php echo date('M d', strtotime($weekDays[0])) . ' — ' . date('M d, Y', strtotime($weekDays[6])); ?>
+                </span>
             </div>
+            
+            <div class="calendar-grid">
+                <?php
+                $todayDate = date('Y-m-d');
+                
+                // Loop through the 7 days of the week to create the columns
+                foreach ($weekDays as $date) {
+                    $dayName = date('D', strtotime($date)); // e.g., Mon, Tue
+                    $dayNum = date('d', strtotime($date));  // e.g., 01, 15
+                    
+                    // Highlight the column if the date is today
+                    $isToday = ($date === $todayDate) ? 'today-col' : '';
+                    
+                    echo "<div class='cal-col {$isToday}'>";
+                    echo "<div class='cal-day-header'>{$dayName} {$dayNum}</div>";
+                    echo "<div class='cal-day-body'>";
+                    
+                    // Check if there are appointments for this specific date
+                    if (isset($weekAppointments[$date])) {
+                        foreach ($weekAppointments[$date] as $appt) {
+                            $time = date('g:i A', strtotime($appt['appointment_time']));
+                            $statusClass = $appt['status'];
+                            
+                            echo "<div class='cal-appt {$statusClass}' title='{$appt['full_name']} - {$appt['make_model']}'>";
+                            echo "<span class='cal-time'>{$time}</span>";
+                            echo "<span class='cal-detail'>{$appt['make_model']}</span>";
+                            echo "</div>";
+                        }
+                    } else {
+                        // Empty state for days without appointments
+                        echo "<span style='color: #d1d5db; font-size: 11px; text-align: center; display: block; margin-top: 10px;'>No appointments</span>";
+                    }
+                    
+                    echo "</div></div>";
+                }
+                ?>
+            </div>
+        </div>
 
         <div class="search-container">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" placeholder="Search Appointments...">
         </div>
 
-        <div class="outline-card" style="min-height: 300px;">
-            <h3><i class="fa-regular fa-calendar"></i> Schedule Appointments</h3>
-            </div>
+        <div class="outline-card">
+            <h3><i class="fa-regular fa-calendar-lines"></i> All Appointments</h3>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date & Time</th>
+                        <th>Customer</th>
+                        <th>Vehicle</th>
+                        <th>Service Type</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    // Fetch all appointments, joining with users and vehicles tables
+                    $query = "
+                        SELECT 
+                            a.id, a.appointment_date, a.appointment_time, a.service_type, a.status,
+                            u.full_name as customer_name,
+                            v.make_model, v.plate_number
+                        FROM appointments a
+                        JOIN users u ON a.user_id = u.id
+                        JOIN vehicles v ON a.vehicle_id = v.id
+                        ORDER BY a.appointment_date ASC, a.appointment_time ASC
+                    ";
+                    $stmt = $pdo->query($query);
+                    $appointments = $stmt->fetchAll();
+
+                    if (count($appointments) > 0) {
+                        foreach ($appointments as $appt) {
+                            $formattedDate = date("M d, Y", strtotime($appt['appointment_date']));
+                            $formattedTime = date("h:i A", strtotime($appt['appointment_time']));
+                            
+                            echo "<tr>";
+                            echo "<td>APT-" . str_pad($appt['id'], 4, '0', STR_PAD_LEFT) . "</td>";
+                            echo "<td><strong>{$formattedDate}</strong><br><span style='color: var(--text-muted); font-size: 11px;'>{$formattedTime}</span></td>";
+                            echo "<td>" . htmlspecialchars($appt['customer_name']) . "</td>";
+                            echo "<td>" . htmlspecialchars($appt['make_model']) . "<br><span style='color: var(--text-muted); font-size: 11px;'>" . htmlspecialchars($appt['plate_number']) . "</span></td>";
+                            echo "<td>" . htmlspecialchars($appt['service_type']) . "</td>";
+                            
+                            // Status Update Form
+                            echo "<td>
+                                    <form method='POST' class='status-form'>
+                                        <input type='hidden' name='update_status' value='1'>
+                                        <input type='hidden' name='appointment_id' value='{$appt['id']}'>
+                                        <select name='status' class='status-select {$appt['status']}'>
+                                            <option value='Pending' " . ($appt['status'] == 'Pending' ? 'selected' : '') . ">Pending</option>
+                                            <option value='Confirmed' " . ($appt['status'] == 'Confirmed' ? 'selected' : '') . ">Confirmed</option>
+                                            <option value='Completed' " . ($appt['status'] == 'Completed' ? 'selected' : '') . ">Completed</option>
+                                            <option value='Cancelled' " . ($appt['status'] == 'Cancelled' ? 'selected' : '') . ">Cancelled</option>
+                                        </select>
+                                        <button type='submit' class='btn-update'><i class='fa-solid fa-check'></i></button>
+                                    </form>
+                                  </td>";
+                            echo "</tr>";
+                        }
+                    } else {
+                        echo "<tr><td colspan='6' style='text-align:center; padding: 20px; color: var(--text-muted);'>No appointments scheduled yet.</td></tr>";
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </div>
     </main>
 
 </body>

@@ -1,15 +1,33 @@
 <?php
 session_start();
+require 'db.php'; 
 
-// Security check: Ensure the user is logged in and has the 'Admin' role
+// Security check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: login.php");
     exit();
 }
 
-// Get the logged-in user's details
-$adminName = $_SESSION['username'] ?? 'Name';
-$adminEmail = 'Email'; // You can fetch this from DB if needed, using a placeholder for now
+$adminName = $_SESSION['username'] ?? 'Admin';
+$adminEmail = 'admin@gmail.com'; 
+
+// Handle Job Order Creation
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
+    $appointment_id = $_POST['appointment_id'];
+    $assignee = $_POST['assignee'];
+    $status = $_POST['status'];
+    $cost = $_POST['cost'];
+
+    try {
+        $stmt = $pdo->prepare("INSERT INTO job_orders (appointment_id, assignee, status, cost) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$appointment_id, $assignee, $status, $cost]);
+        
+        header("Location: job_orders.php?success=1");
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error adding job order: " . $e->getMessage();
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -272,6 +290,59 @@ $adminEmail = 'Email'; // You can fetch this from DB if needed, using a placehol
             font-size: 13px;
             color: var(--text-dark);
         }
+        /* Modal Styles */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+.modal-box {
+    background-color: #fff;
+    width: 500px;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+.modal-header h2 { margin: 0 0 5px 0; font-size: 18px; color: var(--text-dark); }
+.modal-header p { margin: 0 0 20px 0; font-size: 12px; color: var(--text-muted); }
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+.form-group.full-width { grid-column: span 2; }
+.form-group label { font-size: 11px; font-weight: 600; color: var(--text-dark); margin-bottom: 5px; }
+.form-group input, .form-group select {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+    background: #fff;
+    width: 100%;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--primary-orange); }
+.modal-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    border-top: 1px solid var(--border-color); padding-top: 15px;
+}
+.btn-cancel {
+    background: #fff; border: 1px solid var(--border-color); padding: 8px 16px;
+    border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-dark);
+}
+.btn-cancel:hover { background: #f3f4f6; }
+.btn-save {
+    background: var(--primary-orange); border: none; padding: 8px 16px;
+    border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; color: white;
+}
+.btn-save:hover { background: #e66a00; }
+.action-btn { border: none; background: none;cursor: pointer; color: #9ca3af; margin-right: 5px; }
+.action-btn:hover { color: var(--primary-orange); }
     </style>
 </head>
 <body>
@@ -315,7 +386,7 @@ $adminEmail = 'Email'; // You can fetch this from DB if needed, using a placehol
                 <h1>Job Orders</h1>
                 <p>Track and manage all service job orders</p>
             </div>
-            <button class="btn-primary"><i class="fa-solid fa-plus"></i> Create Job Order</button>
+            <button class="btn-primary" onclick="openModal()"><i class="fa-solid fa-plus"></i> Create Job Order</button>
         </div>
 
         <div class="stats-grid">
@@ -362,12 +433,134 @@ $adminEmail = 'Email'; // You can fetch this from DB if needed, using a placehol
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        </tbody>
+                                    <tbody>
+                        <?php
+                        // Fetch job orders joined with appointments and vehicles
+                        $query = "
+                            SELECT 
+                                jo.id as job_id, 
+                                v.make_model, 
+                                v.plate_number, 
+                                a.service_type, 
+                                jo.assignee, 
+                                jo.status, 
+                                jo.cost 
+                            FROM job_orders jo
+                            JOIN appointments a ON jo.appointment_id = a.id
+                            JOIN vehicles v ON a.vehicle_id = v.id
+                            ORDER BY jo.created_at DESC
+                        ";
+                        $stmt = $pdo->query($query);
+                        $job_orders = $stmt->fetchAll();
+
+                        if (count($job_orders) > 0) {
+                            foreach ($job_orders as $job) {
+                                $statusColor = '#1f2937';
+                                if ($job['status'] == 'Completed') $statusColor = '#10b981';
+                                if ($job['status'] == 'In Progress') $statusColor = '#3b82f6';
+                                if ($job['status'] == 'Pending') $statusColor = '#f59e0b';
+                                if ($job['status'] == 'On Hold') $statusColor = '#ef4444';
+
+                                echo "<tr>";
+                                echo "<td>JOB-" . str_pad($job['job_id'], 4, '0', STR_PAD_LEFT) . "</td>";
+                                echo "<td>" . htmlspecialchars($job['make_model'] . " (" . $job['plate_number'] . ")") . "</td>";
+                                echo "<td>" . htmlspecialchars($job['service_type']) . "</td>";
+                                echo "<td>" . htmlspecialchars($job['assignee']) . "</td>";
+                                echo "<td style='color: {$statusColor}; font-weight: 600;'>" . htmlspecialchars($job['status']) . "</td>";
+                                echo "<td>₱" . number_format($job['cost'], 2) . "</td>";
+                                echo "<td>
+                                        <button class='action-btn'><i class='fa-solid fa-pen'></i></button>
+                                        <button class='action-btn'><i class='fa-solid fa-trash'></i></button>
+                                    </td>";
+                                echo "</tr>";
+                            }
+                        } else {
+                            echo "<tr><td colspan='7' style='text-align:center; padding: 20px; color: var(--text-muted);'>No job orders found.</td></tr>";
+                        }
+                        ?>
+                    </tbody>
                 </table>
             </div>
         </div>
     </main>
+<div class="modal-overlay" id="addJobModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>Create Job Order</h2>
+            <p>Select an appointment to assign a job order.</p>
+        </div>
+        <form action="" method="POST">
+            <input type="hidden" name="create_job_order" value="1">
+            
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Select Appointment</label>
+                    <select name="appointment_id" required>
+                        <option value="" disabled selected>Select an appointment...</option>
+                        <?php
+                        // Fetch appointments that DO NOT have a job order yet
+                        $appt_query = "
+                            SELECT a.id, v.make_model, v.plate_number, a.service_type 
+                            FROM appointments a
+                            JOIN vehicles v ON a.vehicle_id = v.id
+                            LEFT JOIN job_orders jo ON a.id = jo.appointment_id
+                            WHERE jo.id IS NULL
+                            ORDER BY a.appointment_date ASC
+                        ";
+                        $appts = $pdo->query($appt_query)->fetchAll();
+                        
+                        foreach ($appts as $appt) {
+                            $displayText = "APT-" . str_pad($appt['id'], 4, '0', STR_PAD_LEFT) . " | " . 
+                                           $appt['make_model'] . " (" . $appt['plate_number'] . ") - " . 
+                                           $appt['service_type'];
+                            echo "<option value='" . $appt['id'] . "'>" . htmlspecialchars($displayText) . "</option>";
+                        }
+                        ?>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label>Assignee (Mechanic)</label>
+                    <input type="text" name="assignee" placeholder="Mechanic Name" required>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="status" required>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Estimated Cost (₱)</label>
+                    <input type="number" name="cost" placeholder="0.00" step="0.01" required>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-save">Create Job</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    const modal = document.getElementById('addJobModal');
 
+    function openModal() {
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    // Close the modal if the user clicks outside of the box
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+</script>
 </body>
 </html>
