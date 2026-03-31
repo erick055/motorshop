@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Mar 30, 2026 at 05:15 AM
+-- Host: 127.0.0.1:3307
+-- Generation Time: Mar 31, 2026 at 11:26 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -57,6 +57,13 @@ CREATE TABLE `inventory` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `inventory`
+--
+
+INSERT INTO `inventory` (`id`, `item_name`, `category`, `quantity`, `min_stock`, `price`, `status`, `created_at`) VALUES
+(2, 'oil', 'Fluids', 5, 10, 232.00, 'Low Stock', '2026-03-31 08:39:20');
+
 -- --------------------------------------------------------
 
 --
@@ -91,6 +98,57 @@ CREATE TABLE `job_orders` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('info','warning','alert','success') NOT NULL DEFAULT 'info',
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `title`, `message`, `type`, `is_read`, `created_at`) VALUES
+(1, 'System Update', 'Welcome to the new ServiceHub Notification System.', 'success', 0, '2026-03-31 08:34:18'),
+(2, 'Low Stock Alert', 'Fully Synthetic Motor Oil is running low (2 left).', 'warning', 0, '2026-03-31 08:34:18'),
+(3, 'Overdue Invoice', 'Invoice INV-0012 for ₱4,500.00 is overdue by 3 days.', 'alert', 0, '2026-03-31 08:34:18'),
+(4, 'New Appointment', 'Customer John Doe booked a new service for tomorrow.', 'info', 1, '2026-03-31 08:34:18');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `system_settings`
+--
+
+CREATE TABLE `system_settings` (
+  `id` int(11) NOT NULL,
+  `setting_key` varchar(50) NOT NULL,
+  `setting_value` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `system_settings`
+--
+
+INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`) VALUES
+(1, 'shop_name', 'ServiceHub Workshop'),
+(2, 'shop_email', 'contact@servicehub.com'),
+(3, 'shop_phone', '+63 912 345 6789'),
+(4, 'shop_address', '123 Auto Lane, Motor City'),
+(5, 'currency', 'PHP'),
+(6, 'email_notif', '1'),
+(7, 'sms_alerts', '0'),
+(8, 'auto_backup', '1');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -109,7 +167,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `role`, `full_name`, `username`, `email`, `password`, `created_at`) VALUES
-(1, 'Admin', 'admin', 'admin', 'admin@gmail.com', '$2y$10$WTLpy4ZIFc45Cfa3nRK53eJF2IEG2f.wqO8qjTZovA/LDG9jYTO1q', '2026-03-07 04:37:17'),
+(1, 'Admin', 'admin', 'admin', 'admin@gmail.com', '$2y$10$iP7W8qhMmIog513hTW2LzuaiWYR0PP6xVCYiOJ/RGY1253oxghRUG', '2026-03-07 04:37:17'),
 (2, 'Customer', 'customer', 'customer1', 'cost@gmail.com', '$2y$10$AFcJgUkHkSqsTyPFhK3OuuzL38IrdPQi81896mlNbai.jPZERElsq', '2026-03-13 15:04:03');
 
 -- --------------------------------------------------------
@@ -164,6 +222,19 @@ ALTER TABLE `job_orders`
   ADD KEY `appointment_id` (`appointment_id`);
 
 --
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `setting_key` (`setting_key`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -191,7 +262,7 @@ ALTER TABLE `appointments`
 -- AUTO_INCREMENT for table `inventory`
 --
 ALTER TABLE `inventory`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `invoices`
@@ -204,6 +275,18 @@ ALTER TABLE `invoices`
 --
 ALTER TABLE `job_orders`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `users`
