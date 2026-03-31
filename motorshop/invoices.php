@@ -1,13 +1,38 @@
 <?php
 session_start();
+require 'db.php'; // Include database connection
 
+// Security check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: login.php");
     exit();
 }
 
-$adminName = $_SESSION['username'] ?? 'Name';
-$adminEmail = 'Email'; 
+$adminName = $_SESSION['username'] ?? 'Admin';
+$adminEmail = 'admin@gmail.com'; 
+
+// Handle Status Update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_invoice_status'])) {
+    $invoice_id = $_POST['invoice_id'];
+    $new_status = $_POST['status'];
+
+    try {
+        $stmt = $pdo->prepare("UPDATE invoices SET status = ? WHERE id = ?");
+        $stmt->execute([$new_status, $invoice_id]);
+        header("Location: invoices.php?success=1");
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error updating status: " . $e->getMessage();
+    }
+}
+
+// Calculate Statistics
+$statsQuery = $pdo->query("SELECT status, SUM(amount) as total_amount FROM invoices GROUP BY status");
+$statsData = $statsQuery->fetchAll(PDO::FETCH_KEY_PAIR); // Creates an array like ['Paid' => 1000, 'Pending' => 500]
+
+$totalRevenue = $statsData['Paid'] ?? 0;
+$pendingAmount = $statsData['Pending'] ?? 0;
+$overdueAmount = $statsData['Overdue'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -313,6 +338,39 @@ $adminEmail = 'Email';
             font-size: 13px;
             color: var(--text-dark);
         }
+        /* Invoice Status Select Form */
+.status-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.status-select {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    font-size: 12px;
+    font-weight: 600;
+    outline: none;
+    cursor: pointer;
+}
+.status-select.Pending { color: #f59e0b; background: #fffbeb; border-color: #fcd34d; }
+.status-select.Paid { color: #10b981; background: #ecfdf5; border-color: #a7f3d0; }
+.status-select.Overdue { color: #ef4444; background: #fef2f2; border-color: #fecaca; }
+
+.btn-update {
+    background: var(--text-dark);
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: 0.2s;
+}
+.btn-update:hover { background: var(--primary-orange); }
+
+.action-btn { border: none; background: none; cursor: pointer; color: #9ca3af; font-size: 14px; margin-right: 5px; }
+.action-btn:hover { color: var(--primary-orange); }
     </style>
 </head>
 <body>
@@ -360,16 +418,16 @@ $adminEmail = 'Email';
 
         <div class="stats-grid">
             <div class="stat-card">
-                <p>Total Revenue</p>
-                <h3>₱0.00</h3>
+                <p>Total Revenue (Paid)</p>
+                <h3>₱<?php echo number_format($totalRevenue, 2); ?></h3>
             </div>
             <div class="stat-card">
                 <p>Pending Amount</p>
-                <h3>₱0.00</h3>
+                <h3 style="color: #f59e0b;">₱<?php echo number_format($pendingAmount, 2); ?></h3>
             </div>
             <div class="stat-card">
                 <p>Overdue Amount</p>
-                <h3>₱0.00</h3>
+                <h3 style="color: #ef4444;">₱<?php echo number_format($overdueAmount, 2); ?></h3>
             </div>
         </div>
 
@@ -387,15 +445,63 @@ $adminEmail = 'Email';
                     <thead>
                         <tr>
                             <th>Invoice ID</th>
+                            <th>Job Order Ref</th>
                             <th>Client</th>
-                            <th>Date</th>
+                            <th>Created / Due Date</th>
                             <th>Amount</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        </tbody>
+                        <?php
+                        // Fetch invoices joined with user details
+                        $query = "
+                            SELECT i.id, i.job_order_id, i.amount, i.status, i.due_date, i.created_at, 
+                                   u.full_name 
+                            FROM invoices i
+                            JOIN users u ON i.user_id = u.id
+                            ORDER BY i.created_at DESC
+                        ";
+                        $stmt = $pdo->query($query);
+                        $invoices = $stmt->fetchAll();
+
+                        if (count($invoices) > 0) {
+                            foreach ($invoices as $inv) {
+                                $createdDate = date("M d, Y", strtotime($inv['created_at']));
+                                $dueDate = date("M d, Y", strtotime($inv['due_date']));
+                                
+                                echo "<tr>";
+                                echo "<td><strong>INV-" . str_pad($inv['id'], 4, '0', STR_PAD_LEFT) . "</strong></td>";
+                                echo "<td>JOB-" . str_pad($inv['job_order_id'], 4, '0', STR_PAD_LEFT) . "</td>";
+                                echo "<td>" . htmlspecialchars($inv['full_name']) . "</td>";
+                                echo "<td>{$createdDate} <br><span style='color: var(--text-muted); font-size: 11px;'>Due: {$dueDate}</span></td>";
+                                echo "<td><strong>₱" . number_format($inv['amount'], 2) . "</strong></td>";
+                                
+                                // Status Update Dropdown Form
+                                echo "<td>
+                                        <form method='POST' class='status-form'>
+                                            <input type='hidden' name='update_invoice_status' value='1'>
+                                            <input type='hidden' name='invoice_id' value='{$inv['id']}'>
+                                            <select name='status' class='status-select {$inv['status']}'>
+                                                <option value='Pending' " . ($inv['status'] == 'Pending' ? 'selected' : '') . ">Pending</option>
+                                                <option value='Paid' " . ($inv['status'] == 'Paid' ? 'selected' : '') . ">Paid</option>
+                                                <option value='Overdue' " . ($inv['status'] == 'Overdue' ? 'selected' : '') . ">Overdue</option>
+                                            </select>
+                                            <button type='submit' class='btn-update' title='Update Status'><i class='fa-solid fa-check'></i></button>
+                                        </form>
+                                      </td>";
+                                      
+                                echo "<td>
+                                        <button class='action-btn' title='View/Print Invoice'><i class='fa-solid fa-print'></i></button>
+                                      </td>";
+                                echo "</tr>";
+                            }
+                        } else {
+                            echo "<tr><td colspan='7' style='text-align:center; padding: 20px; color: var(--text-muted);'>No invoices found.</td></tr>";
+                        }
+                        ?>
+                    </tbody>
                 </table>
             </div>
         </div>
