@@ -1,13 +1,33 @@
 <?php
 session_start();
+require 'db.php'; // Include database connection
+// Handle Client Deletion
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_client'])) {
+    $client_id = $_POST['client_id'];
 
+    try {
+        // Delete the user. ON DELETE CASCADE will handle their vehicles and appointments automatically.
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role = 'Customer'");
+        $stmt->execute([$client_id]);
+        
+        header("Location: clients.php?success=deleted");
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error deleting client: " . $e->getMessage();
+    }
+}
+// Security check: Ensure the user is logged in and has the 'Admin' role
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
     header("Location: login.php");
     exit();
 }
 
-$adminName = $_SESSION['username'] ?? 'Name';
-$adminEmail = 'Email'; 
+$adminName = $_SESSION['username'] ?? 'Admin';
+$adminEmail = 'admin@gmail.com'; 
+
+// Fetch Dashboard Statistics
+$totalClients = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'Customer'")->fetchColumn();
+$totalVehicles = $pdo->query("SELECT COUNT(*) FROM vehicles")->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -328,6 +348,83 @@ $adminEmail = 'Email';
         .action-btn:hover {
             color: var(--primary-orange);
         }
+        /* Table Card & Client Styles */
+.table-card {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.table-card-header {
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.table-card-header h2 {
+    margin: 0;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.table-wrapper {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    overflow: hidden;
+    min-height: 400px;
+}
+table { width: 100%; border-collapse: collapse; }
+th {
+    background-color: #f9fafb;
+    color: var(--text-muted);
+    padding: 12px 15px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+}
+td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+    color: var(--text-dark);
+}
+tbody tr:hover { background-color: #f3f4f6; }
+
+/* Client Avatar and Info */
+.client-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.client-avatar {
+    width: 32px;
+    height: 32px;
+    background-color: var(--sidebar-hover);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+.client-details strong { display: block; color: var(--text-dark); }
+.client-details span { font-size: 11px; color: var(--text-muted); }
+
+.vehicle-badge {
+    background: #e0e7ff;
+    color: #4f46e5;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.action-btn { border: none; background: none; cursor: pointer; color: #9ca3af; font-size: 14px; margin-right: 5px; }
+.action-btn:hover { color: var(--primary-orange); }
     </style>
 </head>
 <body>
@@ -373,56 +470,100 @@ $adminEmail = 'Email';
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <p>Total Clients</p>
-                <h3>0</h3>
+        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+            <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 6px; border: 1px solid var(--border-color);">
+                <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--text-muted);">Total Registered Clients</p>
+                <h3 style="margin: 0; font-size: 24px; color: var(--text-dark);"><?php echo $totalClients; ?></h3>
             </div>
-            <div class="stat-card">
-                <p>Active Clients</p>
-                <h3>0</h3>
-            </div>
-            <div class="stat-card">
-                <p>Total Vehicles</p>
-                <h3>0</h3>
+            <div class="stat-card" style="background: #fff; padding: 20px; border-radius: 6px; border: 1px solid var(--border-color);">
+                <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--text-muted);">Total Serviced Vehicles</p>
+                <h3 style="margin: 0; font-size: 24px; color: var(--primary-orange);"><?php echo $totalVehicles; ?></h3>
             </div>
         </div>
 
-        <div class="search-container">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Search Clients...">
+        <div class="search-container" style="position: relative; max-width: 300px; margin-bottom: 20px;">
+            <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af;"></i>
+            <input type="text" placeholder="Search Clients..." style="width: 100%; padding: 10px 35px; border: 1px solid var(--border-color); border-radius: 20px; outline: none;">
         </div>
 
         <div class="table-card">
             <div class="table-card-header">
-                <h2><i class="fa-regular fa-user"></i> Detailed Client List</h2>
+                <h2><i class="fa-solid fa-users"></i> Client Directory</h2>
             </div>
             <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th><i class="fa-regular fa-envelope"></i> Email</th>
-                            <th><i class="fa-solid fa-phone"></i> Phone</th>
-                            <th>Vehicles</th>
-                            <th>Total Spent</th>
-                            <th>Status</th>
+                            <th>Client Profile</th>
+                            <th>Contact Email</th>
+                            <th>Registered Date</th>
+                            <th>Registered Vehicles</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>John</td>
-                            <td>john.example@gmail.com</td>
-                            <td>(555) 123-4567</td>
-                            <td><strong>2</strong></td>
-                            <td>$1245.00</td>
-                            <td class="text-green">Active</td>
-                            <td>
-                                <button class="action-btn"><i class="fa-solid fa-pen"></i></button>
-                                <button class="action-btn"><i class="fa-solid fa-trash"></i></button>
-                            </td>
-                        </tr>
+                        <?php
+                        // Fetch clients and count their vehicles
+                        $query = "
+                            SELECT u.id, u.full_name, u.email, u.created_at, 
+                                   COUNT(v.id) as vehicle_count
+                            FROM users u
+                            LEFT JOIN vehicles v ON u.id = v.user_id
+                            WHERE u.role = 'Customer'
+                            GROUP BY u.id
+                            ORDER BY u.created_at DESC
+                        ";
+                        $stmt = $pdo->query($query);
+                        $clients = $stmt->fetchAll();
+
+                        if (count($clients) > 0) {
+                            foreach ($clients as $client) {
+                                $initial = strtoupper(substr($client['full_name'], 0, 1));
+                                $joinDate = date("M d, Y", strtotime($client['created_at']));
+                                
+                                echo "<tr>";
+                                
+                                // Client Info Cell with Avatar
+                                echo "<td>
+                                        <div class='client-cell'>
+                                            <div class='client-avatar'>{$initial}</div>
+                                            <div class='client-details'>
+                                                <strong>" . htmlspecialchars($client['full_name']) . "</strong>
+                                                <span>CUST-" . str_pad($client['id'], 4, '0', STR_PAD_LEFT) . "</span>
+                                            </div>
+                                        </div>
+                                      </td>";
+                                      
+                                echo "<td>" . htmlspecialchars($client['email']) . "</td>";
+                                echo "<td>{$joinDate}</td>";
+                                
+                                // Vehicle Badge
+                                echo "<td><span class='vehicle-badge'><i class='fa-solid fa-car'></i> {$client['vehicle_count']} Vehicles</span></td>";
+                                
+                                // Actions
+                                // Actions
+                                echo "<td style='display: flex; gap: 5px;'>
+                                        <a href='view_client.php?id={$client['id']}' class='action-btn' title='View Profile' style='text-decoration: none;'>
+                                            <i class='fa-solid fa-eye'></i>
+                                        </a>
+                                        <a href='mailto:" . htmlspecialchars($client['email']) . "' class='action-btn' title='Send Email' style='text-decoration: none;'>
+                                            <i class='fa-solid fa-envelope'></i>
+                                        </a>
+                                        <form method='POST' style='display:inline; margin: 0;' onsubmit=\"return confirm('Are you sure you want to delete this client? This will permanently erase their vehicles and service history.');\">
+                                            <input type='hidden' name='delete_client' value='1'>
+                                            <input type='hidden' name='client_id' value='{$client['id']}'>
+                                            <button type='submit' class='action-btn' title='Delete Client' style='color: #ef4444;'>
+                                                <i class='fa-solid fa-trash'></i>
+                                            </button>
+                                        </form>
+                                      </td>";
+                                      
+                                echo "</tr>";
+                            }
+                        } else {
+                            echo "<tr><td colspan='5' style='text-align:center; padding: 20px; color: var(--text-muted);'>No clients registered yet.</td></tr>";
+                        }
+                        ?>
                     </tbody>
                 </table>
             </div>
