@@ -28,6 +28,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
         $error = "Error adding job order: " . $e->getMessage();
     }
 }
+// Handle Job Order Update
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['edit_job_order'])) {
+    $job_id = $_POST['job_id'];
+    $assignee = $_POST['assignee'];
+    $status = $_POST['status'];
+    $cost = $_POST['cost'];
+
+    try {
+        // 1. Update the Job Order
+        $stmt = $pdo->prepare("UPDATE job_orders SET assignee = ?, status = ?, cost = ? WHERE id = ?");
+        $stmt->execute([$assignee, $status, $cost, $job_id]);
+        
+        // 2. Automatically sync the linked Appointment to have the SAME status
+        $syncStmt = $pdo->prepare("UPDATE appointments SET status = ? WHERE id = (SELECT appointment_id FROM job_orders WHERE id = ?)");
+        $syncStmt->execute([$status, $job_id]);
+        
+        header("Location: job_orders.php?updated=1");
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error updating job order: " . $e->getMessage();
+    }
+}
+// --- Fetch Job Order Statistics ---
+$statsQuery = "SELECT status, COUNT(*) as count FROM job_orders GROUP BY status";
+$statsStmt = $pdo->query($statsQuery);
+$statusCounts = $statsStmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Assign counts to variables, defaulting to 0 if the status doesn't exist yet
+$countCompleted = $statusCounts['Completed'] ?? 0;
+$countInProgress = $statusCounts['In Progress'] ?? 0;
+$countPending = $statusCounts['Pending'] ?? 0;
+$countOnHold = $statusCounts['On Hold'] ?? 0;
+$countCancelled = $statusCounts['Cancelled'] ?? 0;
+
+
+// Calculate total for the table header
+$totalJobOrders = array_sum($statusCounts);
 ?>
 
 <!DOCTYPE html>
@@ -391,20 +428,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3 class="text-green">0</h3>
+                <h3 class="text-green"><?php echo $countCompleted; ?></h3>
                 <p>Completed</p>
             </div>
             <div class="stat-card">
-                <h3 class="text-blue">0</h3>
+                <h3 class="text-blue"><?php echo $countInProgress; ?></h3>
                 <p>In Progress</p>
             </div>
             <div class="stat-card">
-                <h3 class="text-orange">0</h3>
+                <h3 class="text-orange"><?php echo $countPending; ?></h3>
                 <p>Pending</p>
             </div>
             <div class="stat-card">
-                <h3 class="text-red">0</h3>
+                <h3 class="text-red"><?php echo $countOnHold; ?></h3>
                 <p>On Hold</p>
+            </div>
+            <div class="stat-card">
+                <h3 class="text-black"><?php echo $countCancelled; ?></h3>
+                <p>Cancelled</p>
             </div>
         </div>
 
@@ -415,9 +456,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
         </div>
 
         <div class="table-card">
-            <div class="table-card-header">
+           <div class="table-card-header">
                 <h2><i class="fa-solid fa-wrench"></i> All Job Orders</h2>
-                <p>Total of 0 job orders</p>
+                <p>Total of <?php echo $totalJobOrders; ?> job orders</p>
             </div>
             
             <div class="table-wrapper">
@@ -460,6 +501,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
                                 if ($job['status'] == 'In Progress') $statusColor = '#3b82f6';
                                 if ($job['status'] == 'Pending') $statusColor = '#f59e0b';
                                 if ($job['status'] == 'On Hold') $statusColor = '#ef4444';
+                                if ($job['status'] == 'Cancelled') $statusColor = '#000000';
+
+
+
 
                                 echo "<tr>";
                                 echo "<td>JOB-" . str_pad($job['job_id'], 4, '0', STR_PAD_LEFT) . "</td>";
@@ -468,9 +513,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
                                 echo "<td>" . htmlspecialchars($job['assignee']) . "</td>";
                                 echo "<td style='color: {$statusColor}; font-weight: 600;'>" . htmlspecialchars($job['status']) . "</td>";
                                 echo "<td>₱" . number_format($job['cost'], 2) . "</td>";
+                               // Escape strings to prevent issues with quotes in JavaScript
+                                $escapedAssignee = htmlspecialchars(addslashes($job['assignee']));
+
                                 echo "<td>
-                                        <button class='action-btn'><i class='fa-solid fa-pen'></i></button>
-                                        <button class='action-btn'><i class='fa-solid fa-trash'></i></button>
+                                        <button class='action-btn' onclick=\"openEditModal('{$job['job_id']}', '{$escapedAssignee}', '{$job['status']}', '{$job['cost']}')\" title='Edit'>
+                                            <i class='fa-solid fa-pen'></i>
+                                        </button>
+                                        <button class='action-btn' title='Delete'><i class='fa-solid fa-trash'></i></button>
                                     </td>";
                                 echo "</tr>";
                             }
@@ -529,6 +579,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
                         <option value="In Progress">In Progress</option>
                         <option value="On Hold">On Hold</option>
                         <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -544,21 +595,80 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
         </form>
     </div>
 </div>
+<div class="modal-overlay" id="editJobModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2>Edit Job Order</h2>
+            <p>Update the assignee, status, or cost of the job order.</p>
+        </div>
+        <form action="" method="POST">
+            <input type="hidden" name="edit_job_order" value="1">
+            <input type="hidden" name="job_id" id="edit_job_id" value="">
+            
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label>Assignee (Mechanic)</label>
+                    <input type="text" name="assignee" id="edit_assignee" placeholder="Mechanic Name" required>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="status" id="edit_status" required>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Estimated Cost (₱)</label>
+                    <input type="number" name="cost" id="edit_cost" placeholder="0.00" step="0.01" required>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn-save">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
 <script>
-    const modal = document.getElementById('addJobModal');
+    const addModal = document.getElementById('addJobModal');
+    const editModal = document.getElementById('editJobModal');
 
+    // --- Create Modal Logic ---
     function openModal() {
-        modal.style.display = 'flex';
+        addModal.style.display = 'flex';
     }
 
     function closeModal() {
-        modal.style.display = 'none';
+        addModal.style.display = 'none';
     }
 
-    // Close the modal if the user clicks outside of the box
+    // --- Edit Modal Logic ---
+    function openEditModal(id, assignee, status, cost) {
+        // Populate the form fields with the current row data
+        document.getElementById('edit_job_id').value = id;
+        document.getElementById('edit_assignee').value = assignee;
+        document.getElementById('edit_status').value = status;
+        document.getElementById('edit_cost').value = cost;
+        
+        // Show the modal
+        editModal.style.display = 'flex';
+    }
+
+    function closeEditModal() {
+        editModal.style.display = 'none';
+    }
+
+    // Close modals if the user clicks outside the modal box
     window.onclick = function(event) {
-        if (event.target === modal) {
+        if (event.target === addModal) {
             closeModal();
+        }
+        if (event.target === editModal) {
+            closeEditModal();
         }
     }
 </script>

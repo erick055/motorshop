@@ -1,13 +1,31 @@
 <?php
 session_start();
+require 'db.php'; // Connect to database
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
 $customerName = $_SESSION['username'] ?? 'Customer Name';
 $customerEmail = 'customer@email.com'; 
+
+// Fetch history: Appointments joined with Vehicles and Job Orders
+$histQuery = $pdo->prepare("
+    SELECT 
+        a.appointment_date, a.appointment_time, a.service_type, a.status,
+        v.make_model, v.plate_number,
+        jo.cost, i.id as invoice_id
+    FROM appointments a
+    JOIN vehicles v ON a.vehicle_id = v.id
+    LEFT JOIN job_orders jo ON a.id = jo.appointment_id
+    LEFT JOIN invoices i ON jo.id = i.job_order_id
+    WHERE a.user_id = ?
+    ORDER BY a.appointment_date DESC, a.appointment_time DESC
+");
+$histQuery->execute([$user_id]);
+$history = $histQuery->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">

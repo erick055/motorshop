@@ -1,13 +1,36 @@
 <?php
 session_start();
+require 'db.php'; // Connect to database
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
 $customerName = $_SESSION['username'] ?? 'Customer Name';
 $customerEmail = 'customer@email.com'; 
+
+// 1. Calculate Stats for this specific user
+$statsQuery = $pdo->prepare("SELECT status, SUM(amount) as total FROM invoices WHERE user_id = ? GROUP BY status");
+$statsQuery->execute([$user_id]);
+$statsData = $statsQuery->fetchAll(PDO::FETCH_KEY_PAIR);
+
+$totalPaid = $statsData['Paid'] ?? 0;
+$pendingBalance = $statsData['Pending'] ?? 0;
+$overdueAmount = $statsData['Overdue'] ?? 0;
+
+// 2. Fetch Invoice List for this specific user
+$invQuery = $pdo->prepare("
+    SELECT i.id, i.created_at, i.amount, i.status, i.due_date, jo.id as job_id, a.service_type
+    FROM invoices i
+    JOIN job_orders jo ON i.job_order_id = jo.id
+    JOIN appointments a ON jo.appointment_id = a.id
+    WHERE i.user_id = ?
+    ORDER BY i.created_at DESC
+");
+$invQuery->execute([$user_id]);
+$invoices = $invQuery->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">

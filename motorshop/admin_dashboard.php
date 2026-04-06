@@ -40,6 +40,8 @@ $monthlyRevenue = $monthlyRevenue ? $monthlyRevenue : 0.00; // Handle null if no
 $apptStats = $pdo->query("SELECT status, COUNT(*) as count FROM appointments GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR);
 $pendingApt = $apptStats['Pending'] ?? 0;
 $confirmedApt = $apptStats['Confirmed'] ?? 0;
+$inProgressApt = $apptStats['In Progress'] ?? 0;
+$onHoldApt = $apptStats['On Hold'] ?? 0;
 $completedApt = $apptStats['Completed'] ?? 0;
 $cancelledApt = $apptStats['Cancelled'] ?? 0;
 
@@ -199,20 +201,21 @@ for ($i = 6; $i >= 0; $i--) {
     </main>
 
     <script>
-        // 1. Appointments Doughnut Chart
+        // 1. Unified Status Doughnut Chart
         const ctxApt = document.getElementById('appointmentsChart').getContext('2d');
         new Chart(ctxApt, {
             type: 'doughnut',
             data: {
-                labels: ['Pending', 'Confirmed', 'Completed', 'Cancelled'],
+                labels: ['Pending', 'In Progress', 'On Hold', 'Completed', 'Cancelled'],
                 datasets: [{
                     data: [
-                        <?php echo $pendingApt; ?>, 
-                        <?php echo $confirmedApt; ?>, 
+                        <?php echo $pendingApt; ?>,
+                        <?php echo $inProgressApt; ?>,
+                        <?php echo $onHoldApt; ?>,
                         <?php echo $completedApt; ?>, 
                         <?php echo $cancelledApt; ?>
                     ],
-                    backgroundColor: ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'],
+                    backgroundColor: ['#f59e0b', '#8b5cf6', '#ef4444', '#10b981', '#6b7280'],
                     borderWidth: 0
                 }]
             },

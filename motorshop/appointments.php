@@ -17,8 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $new_status = $_POST['status'];
 
     try {
+        // 1. Update the Appointment
         $stmt = $pdo->prepare("UPDATE appointments SET status = ? WHERE id = ?");
         $stmt->execute([$new_status, $appointment_id]);
+        
+        // 2. Automatically sync the linked Job Order (if it exists) to have the SAME status
+        $syncStmt = $pdo->prepare("UPDATE job_orders SET status = ? WHERE appointment_id = ?");
+        $syncStmt->execute([$new_status, $appointment_id]);
+        
         header("Location: appointments.php?success=1");
         exit();
     } catch (PDOException $e) {
@@ -572,19 +578,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
                             echo "<td>" . htmlspecialchars($appt['service_type']) . "</td>";
                             
                             // Status Update Form
-                            echo "<td>
-                                    <form method='POST' class='status-form'>
-                                        <input type='hidden' name='update_status' value='1'>
-                                        <input type='hidden' name='appointment_id' value='{$appt['id']}'>
-                                        <select name='status' class='status-select {$appt['status']}'>
-                                            <option value='Pending' " . ($appt['status'] == 'Pending' ? 'selected' : '') . ">Pending</option>
-                                            <option value='Confirmed' " . ($appt['status'] == 'Confirmed' ? 'selected' : '') . ">Confirmed</option>
-                                            <option value='Completed' " . ($appt['status'] == 'Completed' ? 'selected' : '') . ">Completed</option>
-                                            <option value='Cancelled' " . ($appt['status'] == 'Cancelled' ? 'selected' : '') . ">Cancelled</option>
-                                        </select>
-                                        <button type='submit' class='btn-update'><i class='fa-solid fa-check'></i></button>
-                                    </form>
-                                  </td>";
+                           // Determine text color based on the unified status
+                            $statusColor = '#1f2937'; // Default gray
+                            if ($appt['status'] == 'Completed') {
+                                $statusColor = '#10b981'; // Green
+                            } elseif ($appt['status'] == 'In Progress' || $appt['status'] == 'Confirmed') {
+                                $statusColor = '#3b82f6'; // Blue
+                            } elseif ($appt['status'] == 'Pending') {
+                                $statusColor = '#f59e0b'; // Orange
+                            } elseif ($appt['status'] == 'On Hold' || $appt['status'] == 'Cancelled') {
+                                $statusColor = '#ef4444'; // Red
+                            }
+
+                            echo "<td style='color: {$statusColor}; font-weight: 600;'>" . htmlspecialchars($appt['status']) . "</td>";
                             echo "</tr>";
                         }
                     } else {
