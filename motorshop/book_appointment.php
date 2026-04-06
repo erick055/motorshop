@@ -1,13 +1,54 @@
 <?php
 session_start();
+require 'db.php'; // Connect to the database
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
 $customerName = $_SESSION['username'] ?? 'Customer Name';
 $customerEmail = 'customer@email.com'; 
+
+// 1. Handle Form Submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $vehicle_id = $_POST['vehicle'];
+    $service_type = $_POST['service'];
+    $appointment_date = $_POST['date'];
+    $appointment_time = $_POST['time'];
+    $mechanic_preference = $_POST['mechanic'] ?? null;
+    $notes = $_POST['notes'] ?? null;
+
+    try {
+        // Insert the booking into the database with a 'Pending' status
+        $stmt = $pdo->prepare("
+            INSERT INTO appointments 
+            (user_id, vehicle_id, service_type, appointment_date, appointment_time, mechanic_preference, notes, status) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')
+        ");
+        
+        $stmt->execute([
+            $user_id, 
+            $vehicle_id, 
+            $service_type, 
+            $appointment_date, 
+            $appointment_time, 
+            $mechanic_preference, 
+            $notes
+        ]);
+        
+        // Success! Redirect the user to their history or show a success message
+        $success_message = "Appointment booked successfully!";
+    } catch (PDOException $e) {
+        $error_message = "Error booking appointment: " . $e->getMessage();
+    }
+}
+
+// 2. Fetch Customer's Vehicles for the dropdown
+$stmt = $pdo->prepare("SELECT id, make_model, plate_number FROM vehicles WHERE user_id = ?");
+$stmt->execute([$user_id]);
+$user_vehicles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -296,6 +337,17 @@ $customerEmail = 'customer@email.com';
                 <p>Schedule a service for your vehicle in just 3 easy steps</p>
             </div>
         </div>
+               <?php if (isset($success_message)): ?>
+            <div style="background-color: #dcfce7; color: #166534; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bbf7d0;">
+                <i class="fa-solid fa-circle-check"></i> <?php echo $success_message; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if (isset($error_message)): ?>
+            <div style="background-color: #fee2e2; color: #991b1b; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #fecaca;">
+                <i class="fa-solid fa-circle-exclamation"></i> <?php echo $error_message; ?>
+            </div>
+        <?php endif; ?>
 
         <div class="form-layout">
             <div class="form-card">
@@ -312,10 +364,17 @@ $customerEmail = 'customer@email.com';
                         <h2>Service Details</h2>
                         <div class="form-group">
                             <label>Select Vehicle</label>
-                            <select id="vehicleSelect" name="vehicle" required>
+                           <select id="vehicleSelect" name="vehicle" required>
                                 <option value="">Choose a registered vehicle</option>
-                                <option value="Honda Civic">Honda Civic (ABC 1234)</option>
-                                <option value="Toyota Vios">Toyota Vios (XYZ 9876)</option>
+                                <?php if (empty($user_vehicles)): ?>
+                                    <option value="" disabled>No vehicles found. Please add a vehicle first.</option>
+                                <?php else: ?>
+                                    <?php foreach ($user_vehicles as $v): ?>
+                                        <option value="<?php echo $v['id']; ?>">
+                                            <?php echo htmlspecialchars($v['make_model'] . ' (' . $v['plate_number'] . ')'); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </select>
                         </div>
                         <div class="form-group">
@@ -421,20 +480,37 @@ $customerEmail = 'customer@email.com';
         }
 
         function nextStep(step) {
-            // Populate the Review summary text when moving to step 3
+            // --- NEW: Validate Step 1 before moving to Step 2 ---
+            if (step === 2) {
+                const vehicle = document.getElementById('vehicleSelect').value;
+                const service = document.getElementById('serviceSelect').value;
+                if (!vehicle || !service) {
+                    alert("Please select both a vehicle and a service type before proceeding.");
+                    return; // Stop the code here so they can't advance
+                }
+            }
+
+            // --- NEW: Validate Step 2 before moving to Step 3 ---
             if (step === 3) {
+                const date = document.getElementById('dateInput').value;
+                const time = document.getElementById('timeInput').value;
+                if (!date || !time) {
+                    alert("Please select a preferred date and time.");
+                    return; // Stop the code here so they can't advance
+                }
+
+                // Populate the Review summary text when moving to step 3
                 const vSelect = document.getElementById('vehicleSelect');
                 const sSelect = document.getElementById('serviceSelect');
                 
-                const vehicle = vSelect.options[vSelect.selectedIndex].text;
-                const service = sSelect.options[sSelect.selectedIndex].text;
-                const date = document.getElementById('dateInput').value;
-                const time = document.getElementById('timeInput').value;
+                const vehicleName = vSelect.options[vSelect.selectedIndex].text;
+                const serviceName = sSelect.options[sSelect.selectedIndex].text;
 
-                document.getElementById('sum-vehicle').innerText = vSelect.value ? vehicle : 'Not Selected';
-                document.getElementById('sum-service').innerText = sSelect.value ? service : 'Not Selected';
-                document.getElementById('sum-datetime').innerText = (date && time) ? `${date} at ${time}` : 'Not Selected';
+                document.getElementById('sum-vehicle').innerText = vehicleName;
+                document.getElementById('sum-service').innerText = serviceName;
+                document.getElementById('sum-datetime').innerText = `${date} at ${time}`;
             }
+            
             showStep(step);
         }
 
