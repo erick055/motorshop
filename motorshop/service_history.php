@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; // Connect to database
+require 'db.php'; // Include your database connection
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
@@ -8,24 +8,27 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
 }
 
 $user_id = $_SESSION['user_id'];
-$customerName = $_SESSION['username'] ?? 'Customer Name';
+$customerName = $_SESSION['username'] ?? 'Customer';
 $customerEmail = 'customer@email.com'; 
 
-// Fetch history: Appointments joined with Vehicles and Job Orders
-$histQuery = $pdo->prepare("
+// Fetch completed and cancelled services for this customer
+$historyQuery = $pdo->prepare("
     SELECT 
-        a.appointment_date, a.appointment_time, a.service_type, a.status,
-        v.make_model, v.plate_number,
-        jo.cost, i.id as invoice_id
+        a.appointment_date, 
+        v.make_model, 
+        v.plate_number, 
+        a.service_type, 
+        a.status, 
+        jo.cost,
+        jo.id as job_id
     FROM appointments a
     JOIN vehicles v ON a.vehicle_id = v.id
     LEFT JOIN job_orders jo ON a.id = jo.appointment_id
-    LEFT JOIN invoices i ON jo.id = i.job_order_id
-    WHERE a.user_id = ?
-    ORDER BY a.appointment_date DESC, a.appointment_time DESC
+    WHERE a.user_id = ? AND a.status IN ('Completed', 'Cancelled')
+    ORDER BY a.appointment_date DESC
 ");
-$histQuery->execute([$user_id]);
-$history = $histQuery->fetchAll();
+$historyQuery->execute([$user_id]);
+$serviceHistory = $historyQuery->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -342,11 +345,42 @@ $history = $histQuery->fetchAll();
                             <th>Invoice</th>
                         </tr>
                     </thead>
-                    <tbody>
+                   <tbody>
+                    <?php if (count($serviceHistory) > 0): ?>
+                        <?php foreach ($serviceHistory as $record): ?>
+                            <tr>
+                                <td><?php echo date("M d, Y", strtotime($record['appointment_date'])); ?></td>
+                                <td>
+                                    <strong><?php echo htmlspecialchars($record['make_model']); ?></strong><br>
+                                    <span style="font-size: 11px; color: var(--text-muted);"><?php echo htmlspecialchars($record['plate_number']); ?></span>
+                                </td>
+                                <td><?php echo htmlspecialchars($record['service_type']); ?></td>
+                                <td>
+                                    <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; 
+                                        background: <?php echo ($record['status'] == 'Completed') ? '#ecfdf5' : '#fef2f2'; ?>; 
+                                        color: <?php echo ($record['status'] == 'Completed') ? '#10b981' : '#ef4444'; ?>;">
+                                        <?php echo $record['status']; ?>
+                                    </span>
+                                </td>
+                                <td><strong>₱<?php echo number_format($record['cost'] ?? 0, 2); ?></strong></td>
+                                <td>
+                                    <?php if ($record['job_id']): ?>
+                                        <span style="font-size: 11px; color: var(--text-muted);">JOB-<?php echo str_pad($record['job_id'], 4, '0', STR_PAD_LEFT); ?></span>
+                                    <?php else: ?>
+                                        --
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
                         <tr>
-                            <td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted);">No service history found.</td>
+                            <td colspan="6" style="text-align:center; padding: 30px; color: var(--text-muted);">
+                                <i class="fa-solid fa-clock-rotate-left" style="font-size: 24px; display: block; margin-bottom: 10px;"></i>
+                                No service history found.
+                            </td>
                         </tr>
-                    </tbody>
+                    <?php endif; ?>
+                </tbody>
                 </table>
             </div>
         </div>

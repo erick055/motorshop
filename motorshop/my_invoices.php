@@ -377,17 +377,17 @@ $invoices = $invQuery->fetchAll();
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3>₱0.00</h3>
+                <h3>₱<?php echo number_format($totalPaid, 2); ?></h3>
                 <span>Total Paid</span>
                 <p>Lifetime payments</p>
             </div>
             <div class="stat-card">
-                <h3>₱0.00</h3>
+                <h3 style="color: #f59e0b;">₱<?php echo number_format($pendingBalance, 2); ?></h3>
                 <span>Pending Balance</span>
                 <p>Current due</p>
             </div>
             <div class="stat-card">
-                <h3 style="color: #ef4444;">₱0.00</h3>
+                <h3 style="color: #ef4444;">₱<?php echo number_format($overdueAmount, 2); ?></h3>
                 <span>Overdue Amount</span>
                 <p>Past due</p>
             </div>
@@ -413,9 +413,31 @@ $invoices = $invQuery->fetchAll();
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">No invoices found.</td>
-                        </tr>
+                        <?php if (count($invoices) > 0): ?>
+                            <?php foreach ($invoices as $inv): ?>
+                                <tr>
+                                    <td><strong>INV-<?php echo str_pad($inv['id'], 4, '0', STR_PAD_LEFT); ?></strong></td>
+                                    <td><?php echo date("M d, Y", strtotime($inv['created_at'])); ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($inv['service_type']); ?><br>
+                                        <span style="font-size: 11px; color: var(--text-muted);">Ref: JOB-<?php echo str_pad($inv['job_id'], 4, '0', STR_PAD_LEFT); ?></span>
+                                    </td>
+                                    <td><strong>₱<?php echo number_format($inv['amount'], 2); ?></strong></td>
+                                    <td>
+                                        <span class="status-badge <?php echo $inv['status']; ?>">
+                                            <?php echo $inv['status']; ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="action-btn" title="View Details"><i class="fa-solid fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">No invoices found.</td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>

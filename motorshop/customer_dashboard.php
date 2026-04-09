@@ -1,13 +1,31 @@
 <?php
 session_start();
+require 'db.php'; // Ensure database connection is included
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
     exit();
 }
 
+$user_id = $_SESSION['user_id'];
 $customerName = $_SESSION['username'] ?? 'Customer Name';
 $customerEmail = 'customer@email.com'; 
+
+// Fetch Active Invoices (Pending or Overdue) for this specific user
+$invQuery = $pdo->prepare("
+    SELECT id, created_at, amount, status 
+    FROM invoices 
+    WHERE user_id = ? AND status IN ('Pending', 'Overdue') 
+    ORDER BY created_at DESC 
+    LIMIT 5
+");
+$invQuery->execute([$user_id]);
+$activeInvoices = $invQuery->fetchAll();
+
+// Fetch Pending Balance for the Stat Card
+$balanceQuery = $pdo->prepare("SELECT SUM(amount) FROM invoices WHERE user_id = ? AND status IN ('Pending', 'Overdue')");
+$balanceQuery->execute([$user_id]);
+$pendingBalance = $balanceQuery->fetchColumn() ?: 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -365,7 +383,7 @@ $customerEmail = 'customer@email.com';
                 <p>Registered vehicles</p>
             </div>
             <div class="stat-card">
-                <h3>₱0.00</h3>
+                <h3>₱<?php echo number_format($pendingBalance, 2); ?></h3>
                 <span>Pending Invoices</span>
                 <p>Unpaid amount</p>
             </div>
@@ -407,9 +425,29 @@ $customerEmail = 'customer@email.com';
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">No active invoices found.</td>
-                            </tr>
+                            <?php if (count($activeInvoices) > 0): ?>
+                                <?php foreach ($activeInvoices as $inv): ?>
+                                    <tr>
+                                        <td><strong>INV-<?php echo str_pad($inv['id'], 4, '0', STR_PAD_LEFT); ?></strong></td>
+                                        <td><?php echo date("M d, Y", strtotime($inv['created_at'])); ?></td>
+                                        <td><strong>₱<?php echo number_format($inv['amount'], 2); ?></strong></td>
+                                        <td>
+                                            <span style="color: <?php echo ($inv['status'] == 'Overdue') ? '#ef4444' : '#f59e0b'; ?>; font-weight: 600;">
+                                                <?php echo $inv['status']; ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="my_invoices.php" class="action-btn" style="color: var(--primary-orange); text-decoration: none;">
+                                                <i class="fa-solid fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" style="text-align:center; color: var(--text-muted); padding: 20px;">No active invoices found.</td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>

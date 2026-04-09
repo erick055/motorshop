@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Apr 06, 2026 at 01:38 PM
+-- Host: 127.0.0.1:3307
+-- Generation Time: Mar 31, 2026 at 11:26 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -36,16 +36,9 @@ CREATE TABLE `appointments` (
   `appointment_time` time NOT NULL,
   `mechanic_preference` varchar(100) DEFAULT NULL,
   `notes` text DEFAULT NULL,
-  `status` enum('Pending','Confirmed','In Progress','On Hold','Completed','Cancelled') DEFAULT 'Pending',
+  `status` enum('Pending','Confirmed','Completed','Cancelled') DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `appointments`
---
-
-INSERT INTO `appointments` (`id`, `user_id`, `vehicle_id`, `service_type`, `appointment_date`, `appointment_time`, `mechanic_preference`, `notes`, `status`, `created_at`) VALUES
-(1, 3, 1, 'General Maintenance', '2026-04-07', '12:00:00', 'Mike', '', 'Completed', '2026-04-06 10:15:57');
 
 -- --------------------------------------------------------
 
@@ -63,6 +56,13 @@ CREATE TABLE `inventory` (
   `status` enum('In Stock','Low Stock','Out of Stock') DEFAULT 'In Stock',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `inventory`
+--
+
+INSERT INTO `inventory` (`id`, `item_name`, `category`, `quantity`, `min_stock`, `price`, `status`, `created_at`) VALUES
+(2, 'oil', 'Fluids', 5, 10, 232.00, 'Low Stock', '2026-03-31 08:39:20');
 
 -- --------------------------------------------------------
 
@@ -90,17 +90,10 @@ CREATE TABLE `job_orders` (
   `id` int(11) NOT NULL,
   `appointment_id` int(11) NOT NULL,
   `assignee` varchar(100) DEFAULT NULL,
-  `status` enum('Pending','Confirmed','In Progress','On Hold','Completed','Cancelled') DEFAULT 'Pending',
+  `status` enum('Pending','In Progress','On Hold','Completed') DEFAULT 'Pending',
   `cost` decimal(10,2) DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `job_orders`
---
-
-INSERT INTO `job_orders` (`id`, `appointment_id`, `assignee`, `status`, `cost`, `created_at`) VALUES
-(1, 1, 'dan', 'Completed', 13000.00, '2026-04-06 10:25:01');
 
 -- --------------------------------------------------------
 
@@ -175,7 +168,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `role`, `full_name`, `username`, `email`, `password`, `created_at`) VALUES
 (1, 'Admin', 'admin', 'admin', 'admin@gmail.com', '$2y$10$iP7W8qhMmIog513hTW2LzuaiWYR0PP6xVCYiOJ/RGY1253oxghRUG', '2026-03-07 04:37:17'),
-(3, 'Customer', 'dann', 'dann123', 'dan@gmail.com', '$2y$10$B7K2xULljxZUUfpIxF43xO34XCf9pia6S1KQqXfvY2FMMcSM1rJu.', '2026-04-05 14:18:29');
+(2, 'Customer', 'customer', 'customer1', 'cost@gmail.com', '$2y$10$AFcJgUkHkSqsTyPFhK3OuuzL38IrdPQi81896mlNbai.jPZERElsq', '2026-03-13 15:04:03');
 
 -- --------------------------------------------------------
 
@@ -194,13 +187,6 @@ CREATE TABLE `vehicles` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `vehicles`
---
-
-INSERT INTO `vehicles` (`id`, `user_id`, `make_model`, `year`, `plate_number`, `engine_type`, `vin`, `notes`, `created_at`) VALUES
-(1, 3, 'honda click', 2023, '5654 ss', 'Gasoline', NULL, NULL, '2026-04-05 15:45:49');
 
 --
 -- Indexes for dumped tables
@@ -270,7 +256,7 @@ ALTER TABLE `vehicles`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `inventory`
@@ -288,7 +274,7 @@ ALTER TABLE `invoices`
 -- AUTO_INCREMENT for table `job_orders`
 --
 ALTER TABLE `job_orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -306,13 +292,13 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `vehicles`
 --
 ALTER TABLE `vehicles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables

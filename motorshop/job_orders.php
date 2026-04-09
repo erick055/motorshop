@@ -29,6 +29,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_job_order'])) {
     }
 }
 // Handle Job Order Update
+// Handle Job Order Update
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['edit_job_order'])) {
     $job_id = $_POST['job_id'];
     $assignee = $_POST['assignee'];
@@ -36,17 +37,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['edit_job_order'])) {
     $cost = $_POST['cost'];
 
     try {
+        $pdo->beginTransaction();
+
         // 1. Update the Job Order
         $stmt = $pdo->prepare("UPDATE job_orders SET assignee = ?, status = ?, cost = ? WHERE id = ?");
         $stmt->execute([$assignee, $status, $cost, $job_id]);
         
-        // 2. Automatically sync the linked Appointment to have the SAME status
+        // 2. Automatically sync the linked Appointment status
         $syncStmt = $pdo->prepare("UPDATE appointments SET status = ? WHERE id = (SELECT appointment_id FROM job_orders WHERE id = ?)");
         $syncStmt->execute([$status, $job_id]);
-        
+
+        // 3. IF COMPLETED: Generate Invoice for the Customer
+        if ($status === 'Completed') {
+            // Check if invoice already exists to prevent duplicates
+            $checkInvoice = $pdo->prepare("SELECT id FROM invoices WHERE job_order_id = ?");
+            $checkInvoice->execute([$job_id]);
+            
+            if (!$checkInvoice->fetch()) {
+                // Get the user_id associated with this job order through the appointment
+                $userQuery = $pdo->prepare("
+                    SELECT a.user_id 
+                    FROM job_orders jo 
+                    JOIN appointments a ON jo.appointment_id = a.id 
+                    WHERE jo.id = ?
+                ");
+                $userQuery->execute([$job_id]);
+                $userData = $userQuery->fetch();
+
+                if ($userData) {
+                    $due_date = date('Y-m-d', strtotime('+7 days')); // Set due date to 7 days from now
+                    $invStmt = $pdo->prepare("INSERT INTO invoices (user_id, job_order_id, amount, status, due_date) VALUES (?, ?, ?, 'Pending', ?)");
+                    $invStmt->execute([$userData['user_id'], $job_id, $cost, $due_date]);
+                }
+            }
+        }
+
+        $pdo->commit();
         header("Location: job_orders.php?updated=1");
         exit();
     } catch (PDOException $e) {
+        $pdo->rollBack();
         $error = "Error updating job order: " . $e->getMessage();
     }
 }

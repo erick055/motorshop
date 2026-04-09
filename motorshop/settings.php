@@ -112,6 +112,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_shop'])) {
     $message = "Shop settings updated successfully!";
     $messageType = "success";
 }
+// --- 4. HANDLE DATA EXPORT (CSV / EXCEL COMPATIBLE) ---
+if (isset($_GET['export'])) {
+    $table = $_GET['export'];
+    $allowed_tables = ['inventory', 'invoices', 'appointments', 'job_orders', 'users'];
+    
+    if (in_array($table, $allowed_tables)) {
+        $stmt = $pdo->query("SELECT * FROM $table");
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($data) {
+            $filename = $table . "_export_" . date('Y-m-d') . ".csv";
+            header('Content-Type: text/csv');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            
+            $output = fopen('php://output', 'w');
+            fputcsv($output, array_keys($data[0])); // Header row
+            foreach ($data as $row) {
+                fputcsv($output, $row);
+            }
+            fclose($output);
+            exit();
+        }
+    }
+}
 
 // --- FETCH CURRENT DATA FOR FORMS ---
 // Get Admin User Data
@@ -125,6 +149,7 @@ $sysSettings = $settingsQuery->fetchAll(PDO::FETCH_KEY_PAIR);
 
 $adminName = $_SESSION['username'] ?? 'Admin';
 $adminEmail = $currentUser['email'] ?? ''; 
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -201,7 +226,27 @@ $adminEmail = $currentUser['email'] ?? '';
         .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #d1d5db; transition: .4s; border-radius: 24px; }
         .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .toggle-slider { background-color: #10b981; }
-        input:checked + .toggle-slider:before { transform: translateX(20px); }
+        input:checked + .toggle-slider:before { transform: translateX(20px); 
+    .btn-export {
+    display: block;
+    text-align: center;
+    padding: 10px;
+    background: #f3f4f6;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text-dark);
+    font-size: 12px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.btn-export:hover {
+    background: var(--sidebar-hover);
+    color: white;
+}
+.btn-export i {
+    margin-right: 5px;
+}}
     </style>
 </head>
 <body>
@@ -338,46 +383,28 @@ $adminEmail = $currentUser['email'] ?? '';
                     </div>
 
                     <div class="settings-card">
-                        <h3><i class="fa-solid fa-sliders"></i> System Preferences</h3>
-                        <p>Configure automated system behaviors.</p>
-                        
-                        <div class="toggle-row">
-                            <div class="toggle-info">
-                                <strong>Email Notifications</strong>
-                                <span>Receive daily summaries and critical alerts via email.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="email_notif" <?php echo ($sysSettings['email_notif'] ?? '0') == '1' ? 'checked' : ''; ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="toggle-row">
-                            <div class="toggle-info">
-                                <strong>SMS Alerts</strong>
-                                <span>Send automated SMS to clients when jobs are completed.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="sms_alerts" <?php echo ($sysSettings['sms_alerts'] ?? '0') == '1' ? 'checked' : ''; ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="toggle-row">
-                            <div class="toggle-info">
-                                <strong>Auto-Backup Database</strong>
-                                <span>Automatically backup records every Sunday at 3 AM.</span>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="auto_backup" <?php echo ($sysSettings['auto_backup'] ?? '0') == '1' ? 'checked' : ''; ?>>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div style="text-align: right; margin-top: 15px;">
-                            <button type="submit" class="btn-submit">Save System Settings</button>
+                    <h3><i class="fa-solid fa-file-export"></i> Data Management</h3>
+                    <p>Export system records to CSV format for Excel reporting.</p>
+                    
+                    <div class="form-group">
+                        <label>Select Table to Export</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                            <a href="?export=appointments" class="btn-export"><i class="fa-solid fa-calendar-check"></i> Appointments</a>
+                            <a href="?export=job_orders" class="btn-export"><i class="fa-solid fa-wrench"></i> Job Orders</a>
+                            <a href="?export=invoices" class="btn-export"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a>
+                            <a href="?export=inventory" class="btn-export"><i class="fa-solid fa-box"></i> Inventory</a>
+                            <a href="?export=users" class="btn-export"><i class="fa-solid fa-users"></i> Clients/Users</a>
                         </div>
                     </div>
+
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 20px 0;">
+                    
+                    <h3><i class="fa-solid fa-database"></i> Database Backup</h3>
+                    <p>Backup all current records into a system archive before clearing data.</p>
+                    <button type="button" class="btn-submit" style="background-color: #3b82f6; width: 100%;">
+                        <i class="fa-solid fa-download"></i> Download Full SQL Backup
+                    </button>
+                </div>
                 </form>
 
             </div>
