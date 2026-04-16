@@ -1,3 +1,4 @@
+<?php include 'db.php'; // Maintain connection ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,11 +7,22 @@
     <title>ServiceHub - Expert Vehicle Care</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Specific styles for the Landing Page */
+        /* Keeping your requested color codes */
+        :root {
+            --primary-orange: #FF7A00;
+            --dark-bg: #0D1117;
+            --navbar-bg: #161B22;
+            --text-main: #FFFFFF;
+            --text-muted: #C9D1D9;
+        }
+
         body, html {
             height: 100%;
             margin: 0;
-            display: block; /* Overrides the flex centering from previous style.css */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            scroll-behavior: smooth;
         }
 
         /* Navbar */
@@ -19,7 +31,10 @@
             justify-content: space-between;
             align-items: center;
             padding: 15px 40px;
-            background-color: #161b22; /* Dark navbar matching the design */
+            background-color: var(--navbar-bg);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         }
 
@@ -33,96 +48,159 @@
             gap: 10px;
         }
 
-        .navbar-brand span {
-            color: #FF7A00;
-        }
+        .navbar-brand span { color: var(--primary-orange); }
+
+        .nav-links { display: flex; gap: 20px; align-items: center; }
+        .nav-links a { color: var(--text-main); text-decoration: none; font-size: 14px; }
 
         .nav-btn {
-            background-color: #FF7A00;
+            background-color: var(--primary-orange);
             color: #fff;
             padding: 8px 20px;
             border-radius: 5px;
             text-decoration: none;
             font-weight: bold;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-
-        .nav-btn:hover {
-            background-color: #e66a00;
+            transition: 0.3s;
         }
 
         /* Hero Section */
         .hero {
-            /* Using a placeholder image similar to your design. Replace with your actual local image path like 'images/motorcycle-bg.jpg' */
-            background-image: linear-gradient(rgba(13, 17, 23, 0.6), rgba(13, 17, 23, 0.6)), url('https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=2070&auto=format&fit=crop');
+            background-image: linear-gradient(rgba(13, 17, 23, 0.7), rgba(13, 17, 23, 0.7)), url('https://images.unsplash.com/photo-1558981403-c5f9899a28bc?q=80&w=2070&auto=format&fit=crop');
             background-size: cover;
             background-position: center;
-            height: calc(100vh - 65px); /* Full height minus navbar */
+            height: 80vh;
             display: flex;
             justify-content: center;
             align-items: center;
             text-align: center;
         }
 
-        .hero-content {
-            max-width: 600px;
-            padding: 20px;
+        .highlight { color: var(--primary-orange); }
+
+        /* New Features: Services Section */
+        .section-padding { padding: 60px 40px; text-align: center; }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
         }
 
-        .hero-content h1 {
-            font-size: 42px;
-            margin-bottom: 15px;
-            line-height: 1.2;
-            color: #fff;
+        .service-card {
+            background: var(--navbar-bg);
+            padding: 30px;
+            border-radius: 10px;
+            border-bottom: 3px solid transparent;
+            transition: 0.3s;
         }
 
-        .hero-content h1 .highlight {
-            color: #FF7A00;
+        .service-card:hover {
+            border-bottom: 3px solid var(--primary-orange);
+            transform: translateY(-5px);
         }
 
-        .hero-content p {
-            font-size: 16px;
-            color: #c9d1d9;
-            margin-bottom: 30px;
-            line-height: 1.5;
+        .service-card i { font-size: 40px; color: var(--primary-orange); margin-bottom: 15px; }
+
+        /* New Features: About Us */
+        .about-container {
+            display: flex;
+            align-items: center;
+            gap: 50px;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .about-image img {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 10px 10px 0px var(--primary-orange);
+        }
+
+        /* Footer */
+        footer {
+            background: #090c10;
+            padding: 40px;
+            text-align: center;
+            border-top: 1px solid #30363d;
         }
 
         .cta-btn {
-            background-color: #FF7A00;
+            background-color: var(--primary-orange);
             color: #fff;
             padding: 15px 30px;
-            border: none;
             border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
             text-decoration: none;
+            font-weight: bold;
             display: inline-block;
-            transition: background 0.3s, transform 0.2s;
-        }
-
-        .cta-btn:hover {
-            background-color: #e66a00;
-            transform: translateY(-2px);
+            transition: 0.3s;
         }
     </style>
 </head>
 <body>
 
     <nav class="navbar">
-        <a href="index.php" class="navbar-brand">
-            <span>🔧</span> ServiceHub
-        </a>
-        <a href="login.php" class="nav-btn">Login | Sign Up</a>
+        <a href="index.php" class="navbar-brand"><span>🔧</span> ServiceHub</a>
+        <div class="nav-links">
+            <a href="#services">Services</a>
+            <a href="#about">About</a>
+            <a href="login.php" class="nav-btn">Login | Sign Up</a>
+        </div>
     </nav>
 
-    <section class="hero">
+    <header class="hero">
         <div class="hero-content">
             <h1>Expert Care for <br> Your <span class="highlight">DREAM MACHINE</span></h1>
-            <p>Experience top-notch professional auto maintenance. <br> Fast, reliable, and pocket-friendly prices.</p>
+            <p>Top-notch professional auto maintenance. Fast, reliable, and pocket-friendly.</p>
             <a href="login.php" class="cta-btn">Book Appointment Now</a>
         </div>
+    </header>
+
+    <section id="services" class="section-padding">
+        <h2>Our <span class="highlight">Services</span></h2>
+        <p>We provide a wide range of mechanical services for your vehicle.</p>
+        <div class="services-grid">
+            <div class="service-card">
+                <h3>Engine Tune-up</h3>
+                <p>Comprehensive diagnostics and performance optimization for your motor.</p>
+            </div>
+            <div class="service-card">
+                <h3>Oil Change</h3>
+                <p>Premium oil replacements to keep your engine running smoothly.</p>
+            </div>
+            <div class="service-card">
+                <h3>Tire Services</h3>
+                <p>Alignment, pressure checks, and replacements for maximum safety.</p>
+            </div>
+            <div class="service-card">
+                <h3>Brake Repair</h3>
+                <p>Expert brake inspection and part replacements you can trust.</p>
+            </div>
+        </div>
     </section>
+
+    <section id="about" class="section-padding" style="background-color: #161b22;">
+        <div class="about-container">
+            <div class="about-image">
+                <img src="https://images.unsplash.com/photo-1486006396193-471a2abc881a?q=80&w=2000&auto=format&fit=crop" alt="Workshop">
+            </div>
+            <div class="about-text">
+                <h2>Why Choose <span class="highlight">ServiceHub?</span></h2>
+                <p>With years of experience in the industry, our certified mechanics use the latest technology to ensure your vehicle receives the best care possible. We prioritize transparency, speed, and quality in every job order.</p>
+                <ul style="list-style: none; padding: 0;">
+                    <li>✔️ Certified Professional Mechanics</li>
+                    <li>✔️ Quality Parts & Equipment</li>
+                    <li>✔️ Affordable & Transparent Pricing</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 ServiceHub - Expert Vehicle Care. All rights reserved.</p>
+    </footer>
 
 </body>
 </html>
