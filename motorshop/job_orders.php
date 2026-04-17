@@ -95,6 +95,21 @@ $countCancelled = $statusCounts['Cancelled'] ?? 0;
 
 // Calculate total for the table header
 $totalJobOrders = array_sum($statusCounts);
+
+// Handle Job Order Deletion
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_job_order'])) {
+    $job_id = $_POST['job_id'];
+
+    try {
+        $stmt = $pdo->prepare("DELETE FROM job_orders WHERE id = ?");
+        $stmt->execute([$job_id]);
+        
+        header("Location: job_orders.php?deleted=1");
+        exit();
+    } catch (PDOException $e) {
+        $error = "Error deleting job order: " . $e->getMessage();
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -546,12 +561,14 @@ $totalJobOrders = array_sum($statusCounts);
                                // Escape strings to prevent issues with quotes in JavaScript
                                 $escapedAssignee = htmlspecialchars(addslashes($job['assignee']));
 
-                                echo "<td>
-                                        <button class='action-btn' onclick=\"openEditModal('{$job['job_id']}', '{$escapedAssignee}', '{$job['status']}', '{$job['cost']}')\" title='Edit'>
-                                            <i class='fa-solid fa-pen'></i>
-                                        </button>
-                                        <button class='action-btn' title='Delete'><i class='fa-solid fa-trash'></i></button>
-                                    </td>";
+                               echo "<td>
+                                <button class='action-btn' onclick=\"openEditModal('{$job['job_id']}', '{$escapedAssignee}', '{$job['status']}', '{$job['cost']}')\" title='Edit'>
+                                    <i class='fa-solid fa-pen'></i>
+                                </button>
+                                <button class='action-btn' onclick=\"openDeleteModal('{$job['job_id']}')\" title='Delete'>
+                                    <i class='fa-solid fa-trash'></i>
+                                </button>
+                            </td>";
                                 echo "</tr>";
                             }
                         } else {
@@ -626,6 +643,7 @@ $totalJobOrders = array_sum($statusCounts);
     </div>
 </div>
 <div class="modal-overlay" id="editJobModal">
+    
     <div class="modal-box">
         <div class="modal-header">
             <h2>Edit Job Order</h2>
@@ -663,9 +681,27 @@ $totalJobOrders = array_sum($statusCounts);
         </form>
     </div>
 </div>
+<div class="modal-overlay" id="deleteJobModal">
+    <div class="modal-box" style="width: 400px; text-align: center;">
+        <div class="modal-header">
+            <h2>Delete Job Order</h2>
+            <p>Are you sure you want to delete this job order? This action cannot be undone.</p>
+        </div>
+        <form action="" method="POST">
+            <input type="hidden" name="delete_job_order" value="1">
+            <input type="hidden" name="job_id" id="delete_job_id" value="">
+            
+            <div class="modal-actions" style="justify-content: center; border-top: none; padding-top: 5px;">
+                <button type="button" class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button type="submit" class="btn-save" style="background-color: #ef4444;">Yes, Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
 <script>
     const addModal = document.getElementById('addJobModal');
     const editModal = document.getElementById('editJobModal');
+    const deleteModal = document.getElementById('deleteJobModal');
 
     // --- Create Modal Logic ---
     function openModal() {
@@ -678,18 +714,26 @@ $totalJobOrders = array_sum($statusCounts);
 
     // --- Edit Modal Logic ---
     function openEditModal(id, assignee, status, cost) {
-        // Populate the form fields with the current row data
         document.getElementById('edit_job_id').value = id;
         document.getElementById('edit_assignee').value = assignee;
         document.getElementById('edit_status').value = status;
         document.getElementById('edit_cost').value = cost;
         
-        // Show the modal
         editModal.style.display = 'flex';
     }
 
     function closeEditModal() {
         editModal.style.display = 'none';
+    }
+
+    // --- Delete Modal Logic ---
+    function openDeleteModal(id) {
+        document.getElementById('delete_job_id').value = id;
+        deleteModal.style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+        deleteModal.style.display = 'none';
     }
 
     // Close modals if the user clicks outside the modal box
@@ -699,6 +743,9 @@ $totalJobOrders = array_sum($statusCounts);
         }
         if (event.target === editModal) {
             closeEditModal();
+        }
+        if (event.target === deleteModal) {
+            closeDeleteModal();
         }
     }
 </script>
