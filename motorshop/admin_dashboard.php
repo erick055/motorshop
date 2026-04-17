@@ -164,19 +164,19 @@ for ($i = 6; $i >= 0; $i--) {
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3><?php echo $totalAppointments; ?></h3>
+                <h3 id="stat-appointments"><?php echo $totalAppointments; ?></h3>
                 <p>Total Appointments</p>
             </div>
             <div class="stat-card">
-                <h3 style="color: #3b82f6;"><?php echo $activeJobs; ?></h3>
+                <h3 id="stat-active-jobs" style="color: #3b82f6;"><?php echo $activeJobs; ?></h3>
                 <p>Active Jobs</p>
             </div>
             <div class="stat-card">
-                <h3 style="color: #10b981;"><?php echo $totalClients; ?></h3>
+                <h3 id="stat-total-clients" style="color: #10b981;"><?php echo $totalClients; ?></h3>
                 <p>Total Clients</p>
             </div>
             <div class="stat-card">
-                <h3 style="color: #1f2937;">₱<?php echo number_format($monthlyRevenue, 2); ?></h3>
+                <h3 id="stat-monthly-revenue" style="color: #1f2937;">₱<?php echo number_format($monthlyRevenue, 2); ?></h3>
                 <p>Monthly Revenue</p>
             </div>
         </div>
@@ -258,6 +258,26 @@ for ($i = 6; $i >= 0; $i--) {
                 }
             }
         });
+            function fetchRealTimeStats() {
+            fetch('api_admin_stats.php')
+                .then(response => response.json())
+                .then(data => {
+                    if(data.error) {
+                        console.error("Unauthorized or session expired.");
+                        return;
+                    }
+                    
+                    // Update the HTML elements with the new data
+                    document.getElementById('stat-appointments').innerText = data.totalAppointments;
+                    document.getElementById('stat-active-jobs').innerText = data.activeJobs;
+                    document.getElementById('stat-total-clients').innerText = data.totalClients;
+                    document.getElementById('stat-monthly-revenue').innerText = '₱' + data.monthlyRevenue;
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Run this function every 5 seconds (5000 milliseconds)
+        setInterval(fetchRealTimeStats, 5000);
     </script>
 </body>
 </html>
