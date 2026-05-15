@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1:3307
--- Generation Time: Mar 31, 2026 at 11:26 AM
+-- Host: 127.0.0.1
+-- Generation Time: May 15, 2026 at 07:33 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -39,6 +39,15 @@ CREATE TABLE `appointments` (
   `status` enum('Pending','Confirmed','Completed','Cancelled') DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `appointments`
+--
+
+INSERT INTO `appointments` (`id`, `user_id`, `vehicle_id`, `service_type`, `appointment_date`, `appointment_time`, `mechanic_preference`, `notes`, `status`, `created_at`) VALUES
+(1, 3, 1, 'Tire Replacement', '2026-05-07', '08:35:00', '', '', 'Completed', '2026-05-06 12:35:30'),
+(2, 3, 1, 'General Maintenance', '2026-05-08', '08:06:00', NULL, NULL, 'Completed', '2026-05-06 13:59:21'),
+(3, 3, 1, 'General Maintenance', '2026-05-08', '06:06:00', NULL, NULL, 'Pending', '2026-05-06 16:36:56');
 
 -- --------------------------------------------------------
 
@@ -80,6 +89,14 @@ CREATE TABLE `invoices` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `invoices`
+--
+
+INSERT INTO `invoices` (`id`, `user_id`, `job_order_id`, `amount`, `status`, `due_date`, `created_at`) VALUES
+(1, 3, 1, 500.00, 'Pending', '2026-05-13', '2026-05-06 12:37:50'),
+(2, 3, 2, 1223.00, 'Pending', '2026-05-13', '2026-05-06 14:04:11');
+
 -- --------------------------------------------------------
 
 --
@@ -94,6 +111,14 @@ CREATE TABLE `job_orders` (
   `cost` decimal(10,2) DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `job_orders`
+--
+
+INSERT INTO `job_orders` (`id`, `appointment_id`, `assignee`, `status`, `cost`, `created_at`) VALUES
+(1, 1, 'dan', 'Completed', 500.00, '2026-05-06 12:36:13'),
+(2, 2, 'dan', 'Completed', 1223.00, '2026-05-06 14:00:38');
 
 -- --------------------------------------------------------
 
@@ -137,7 +162,7 @@ CREATE TABLE `system_settings` (
 --
 
 INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`) VALUES
-(1, 'shop_name', 'ServiceHub Workshop'),
+(1, 'shop_name', 'ServiceHub'),
 (2, 'shop_email', 'contact@servicehub.com'),
 (3, 'shop_phone', '+63 912 345 6789'),
 (4, 'shop_address', '123 Auto Lane, Motor City'),
@@ -159,16 +184,19 @@ CREATE TABLE `users` (
   `username` varchar(50) NOT NULL,
   `email` varchar(100) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `profile_image` varchar(255) DEFAULT 'default_avatar.png',
+  `phone_number` varchar(20) DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `role`, `full_name`, `username`, `email`, `password`, `created_at`) VALUES
-(1, 'Admin', 'admin', 'admin', 'admin@gmail.com', '$2y$10$iP7W8qhMmIog513hTW2LzuaiWYR0PP6xVCYiOJ/RGY1253oxghRUG', '2026-03-07 04:37:17'),
-(2, 'Customer', 'customer', 'customer1', 'cost@gmail.com', '$2y$10$AFcJgUkHkSqsTyPFhK3OuuzL38IrdPQi81896mlNbai.jPZERElsq', '2026-03-13 15:04:03');
+INSERT INTO `users` (`id`, `role`, `full_name`, `username`, `email`, `password`, `created_at`, `profile_image`, `phone_number`) VALUES
+(1, 'Admin', 'adminadmin', 'admin', 'admin@gmail.com', '$2y$10$/Mpj0oeyNn7KtYyc0EOo7.BWRzoK9fJqLAOCNPtpp4QgVk7uyN9d2', '2026-03-07 04:37:17', 'default_avatar.png', ''),
+(2, 'Customer', 'customer', 'customer1', 'cost@gmail.com', '$2y$10$AFcJgUkHkSqsTyPFhK3OuuzL38IrdPQi81896mlNbai.jPZERElsq', '2026-03-13 15:04:03', 'default_avatar.png', ''),
+(3, 'Customer', 'dann', 'dan123', 'dan@gmail.com', '$2y$10$//R2Zbw1k6C19EOb3.TC.O726aSH5t7tkrU4RQiOCEIfRGqwIvpFa', '2026-05-04 11:43:57', 'uploads/customer_3_69fb64d90ad83.png', '');
 
 -- --------------------------------------------------------
 
@@ -185,8 +213,17 @@ CREATE TABLE `vehicles` (
   `engine_type` enum('Gasoline','Diesel','Electric','Hybrid') NOT NULL,
   `vin` varchar(50) DEFAULT NULL,
   `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `vehicle_image` varchar(255) DEFAULT 'default_bike.png'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `vehicles`
+--
+
+INSERT INTO `vehicles` (`id`, `user_id`, `make_model`, `year`, `plate_number`, `engine_type`, `vin`, `notes`, `created_at`, `vehicle_image`) VALUES
+(1, 3, 'hondo click', 2026, '15c 95e', 'Diesel', NULL, NULL, '2026-05-06 12:34:25', 'uploads/vehicle_3_69fb66988b8e9.png'),
+(2, 3, 'hond civic', 2021, '545 asd', 'Diesel', NULL, NULL, '2026-05-06 13:43:09', 'bike_69fb456d61c06.png');
 
 --
 -- Indexes for dumped tables
@@ -256,7 +293,7 @@ ALTER TABLE `vehicles`
 -- AUTO_INCREMENT for table `appointments`
 --
 ALTER TABLE `appointments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `inventory`
@@ -268,13 +305,13 @@ ALTER TABLE `inventory`
 -- AUTO_INCREMENT for table `invoices`
 --
 ALTER TABLE `invoices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `job_orders`
 --
 ALTER TABLE `job_orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -292,13 +329,13 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `vehicles`
 --
 ALTER TABLE `vehicles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables
