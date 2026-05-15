@@ -351,7 +351,7 @@ $invoices = $invQuery->fetchAll();
             <li><a href="book_appointment.php"><i class="fa-regular fa-calendar-plus"></i> Book Appointment</a></li>
             <li><a href="service_history.php"><i class="fa-solid fa-clock-rotate-left"></i> Service History</a></li>
             <li><a href="my_invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
-            <li><a href="profile.php"><i class="fa-regular fa-user"></i> Profile</a></li>
+            <li><a href="customer_profile.php"><i class="fa-regular fa-user"></i> Profile</a></li>
         </ul>
 
         <div class="user-profile-container">
