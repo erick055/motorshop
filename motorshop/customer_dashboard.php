@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; // Ensure database connection is included
+require 'includes/db.php'; // Ensure database connection is included
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
@@ -26,6 +26,30 @@ $activeInvoices = $invQuery->fetchAll();
 $balanceQuery = $pdo->prepare("SELECT SUM(amount) FROM invoices WHERE user_id = ? AND status IN ('Pending', 'Overdue')");
 $balanceQuery->execute([$user_id]);
 $pendingBalance = $balanceQuery->fetchColumn() ?: 0;
+
+// --- REAL-TIME DASHBOARD STATS LOGIC ---
+
+// 1. Total Vehicles
+$stmtVeh = $pdo->prepare("SELECT COUNT(*) FROM vehicles WHERE user_id = ?");
+$stmtVeh->execute([$user_id]);
+$totalVehicles = $stmtVeh->fetchColumn();
+
+// 2. Active Appointments
+$stmtActive = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE user_id = ? AND status IN ('Pending', 'Confirmed', 'In Progress', 'On Hold')");
+$stmtActive->execute([$user_id]);
+$activeAppointments = $stmtActive->fetchColumn();
+
+// 3. Recent Appointments (Table Data) - Grabs the 5 most recent
+$stmtRecent = $pdo->prepare("
+    SELECT a.appointment_date, a.service_type, a.status, v.make_model 
+    FROM appointments a 
+    JOIN vehicles v ON a.vehicle_id = v.id 
+    WHERE a.user_id = ? 
+    ORDER BY a.created_at DESC 
+    LIMIT 5
+");
+$stmtRecent->execute([$user_id]);
+$recentAppointmentsList = $stmtRecent->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -341,12 +365,11 @@ $pendingBalance = $balanceQuery->fetchColumn() ?: 0;
         </div>
 
         <ul class="nav-links">
-            <li><a href="customer_dashboard.php" class="active"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
+            <li><a href="customer_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
             <li><a href="my_vehicles.php"><i class="fa-solid fa-car"></i> My Vehicles</a></li>
             <li><a href="book_appointment.php"><i class="fa-regular fa-calendar-plus"></i> Book Appointment</a></li>
             <li><a href="service_history.php"><i class="fa-solid fa-clock-rotate-left"></i> Service History</a></li>
             <li><a href="my_invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
-            <li><a href="support.php"><i class="fa-regular fa-circle-question"></i> Support</a></li>
             <li><a href="customer_profile.php"><i class="fa-regular fa-user"></i> Profile</a></li>
         </ul>
 
@@ -373,12 +396,12 @@ $pendingBalance = $balanceQuery->fetchColumn() ?: 0;
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3>0</h3>
+                <h3><?php echo $activeAppointments; ?></h3>
                 <span>Active Appointments</span>
                 <p>Upcoming service</p>
             </div>
             <div class="stat-card">
-                <h3>0</h3>
+                <h3><?php echo $totalVehicles; ?></h3>
                 <span>Total Vehicles</span>
                 <p>Registered vehicles</p>
             </div>
@@ -403,9 +426,26 @@ $pendingBalance = $balanceQuery->fetchColumn() ?: 0;
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="4" style="text-align:center; color: var(--text-muted); padding: 20px;">No recent appointments found.</td>
-                            </tr>
+                            <?php if (count($recentAppointmentsList) > 0): ?>
+                                <?php foreach ($recentAppointmentsList as $apt): 
+                                    // Format the date nicely (e.g., May 08, 2026)
+                                    $formattedDate = date("M d, Y", strtotime($apt['appointment_date']));
+                                ?>
+                                    <tr>
+                                        <td><?php echo $formattedDate; ?></td>
+                                        <td><?php echo htmlspecialchars($apt['make_model']); ?></td>
+                                        <td><?php echo htmlspecialchars($apt['service_type']); ?></td>
+                                        <td><?php echo htmlspecialchars($apt['status']); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <!-- Colspan=4 ensures the empty message spans across all 4 columns -->
+                                    <td colspan="4" style="text-align: center; padding: 30px; color: var(--text-muted, #6b7280);">
+                                        No recent appointments found.
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>

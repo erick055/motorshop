@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; // Include your database connection
+require 'includes/db.php'; // Include your database connection
 
 // Security check: Ensure the user is logged in and has the 'Admin' role
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {

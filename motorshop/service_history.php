@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; // Include your database connection
+require 'includes/db.php'; // Include your database connection
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Customer') {
     header("Location: login.php");
@@ -302,9 +302,8 @@ $serviceHistory = $historyQuery->fetchAll();
             <li><a href="customer_dashboard.php"><i class="fa-solid fa-border-all"></i> Dashboard</a></li>
             <li><a href="my_vehicles.php"><i class="fa-solid fa-car"></i> My Vehicles</a></li>
             <li><a href="book_appointment.php"><i class="fa-regular fa-calendar-plus"></i> Book Appointment</a></li>
-            <li><a href="service_history.php" class="active"><i class="fa-solid fa-clock-rotate-left"></i> Service History</a></li>
+            <li><a href="service_history.php"><i class="fa-solid fa-clock-rotate-left"></i> Service History</a></li>
             <li><a href="my_invoices.php"><i class="fa-solid fa-file-invoice-dollar"></i> Invoices</a></li>
-            <li><a href="support.php"><i class="fa-regular fa-circle-question"></i> Support</a></li>
             <li><a href="customer_profile.php"><i class="fa-regular fa-user"></i> Profile</a></li>
         </ul>
 
