@@ -12,22 +12,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
+    // In login.php, inside the POST check
     if ($user && password_verify($password, $user['password'])) {
-        // Set session variables
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role'] = $user['role'];
         
-        // Redirect based on role
-        if ($user['role'] === 'Admin') {
-            header("Location: admin_dashboard.php");
+        // --- ADD THIS CHECK ---
+        if (isset($user['is_verified']) && $user['is_verified'] == 0) {
+            $error = "Please check your email and verify your account before logging in!";
         } else {
-            header("Location: customer_dashboard.php");
+            // Set session variables (Your existing code)
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role'];
+            
+            // Redirect based on role
+            if ($user['role'] === 'Admin') {
+                header("Location: admin_dashboard.php");
+            } else {
+                header("Location: customer_dashboard.php");
+            }
+            exit();
         }
-        exit();
     } else {
         $error = "Invalid username or password!";
-    }
+    }           
 }
 ?>
 
