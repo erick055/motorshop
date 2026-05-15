@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; // Include database connection
+require 'includes/db.php'; // Include database connection
 
 // Security check
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
@@ -379,7 +379,7 @@ $overdueAmount = $statsData['Overdue'] ?? 0;
         <div class="sidebar-header">
             <i class="fa-solid fa-wrench" style="color: var(--primary-orange); font-size: 20px;"></i>
             <div>
-                <h2>Name</h2>
+                <h2>ServiceHub</h2>
                 <p>Workshop Management</p>
             </div>
         </div>

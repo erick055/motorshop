@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; // Include database connection
+require 'includes/db.php'; // Include database connection
 // Handle Client Deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_client'])) {
     $client_id = $_POST['client_id'];
@@ -433,7 +433,7 @@ tbody tr:hover { background-color: #f3f4f6; }
         <div class="sidebar-header">
             <i class="fa-solid fa-wrench" style="color: var(--primary-orange); font-size: 20px;"></i>
             <div>
-                <h2>Name</h2>
+                <h2>ServiceHub</h2>
                 <p>Workshop Management</p>
             </div>
         </div>

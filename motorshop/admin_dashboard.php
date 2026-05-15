@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; // Include database connection
+require 'includes/db.php'; // Include database connection
 
 // Security check: Ensure the user is logged in and has the 'Admin' role
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Admin') {
@@ -201,83 +201,83 @@ for ($i = 6; $i >= 0; $i--) {
     </main>
 
     <script>
-        // 1. Unified Status Doughnut Chart
-        const ctxApt = document.getElementById('appointmentsChart').getContext('2d');
-        new Chart(ctxApt, {
-            type: 'doughnut',
-            data: {
-                labels: ['Pending', 'In Progress', 'On Hold', 'Completed', 'Cancelled'],
-                datasets: [{
-                    data: [
-                        <?php echo $pendingApt; ?>,
-                        <?php echo $inProgressApt; ?>,
-                        <?php echo $onHoldApt; ?>,
-                        <?php echo $completedApt; ?>, 
-                        <?php echo $cancelledApt; ?>
-                    ],
-                    backgroundColor: ['#f59e0b', '#8b5cf6', '#ef4444', '#10b981', '#6b7280'],
-                    borderWidth: 0
-                }]
+    // 1. Initialize Appointments Doughnut Chart
+    const ctxApt = document.getElementById('appointmentsChart').getContext('2d');
+    const appointmentsChart = new Chart(ctxApt, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pending', 'In Progress', 'On Hold', 'Completed', 'Cancelled'],
+            datasets: [{
+                data: [
+                    <?php echo $pendingApt; ?>,
+                    <?php echo $inProgressApt; ?>,
+                    <?php echo $onHoldApt; ?>,
+                    <?php echo $completedApt; ?>, 
+                    <?php echo $cancelledApt; ?>
+                ],
+                backgroundColor: ['#f59e0b', '#8b5cf6', '#ef4444', '#10b981', '#6b7280'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right' }
-                },
-                cutout: '70%'
-            }
-        });
+            cutout: '70%'
+        }
+    });
 
-        // 2. Revenue Bar Chart
-        const ctxRev = document.getElementById('revenueChart').getContext('2d');
-        new Chart(ctxRev, {
-            type: 'bar',
-            data: {
-                labels: <?php echo json_encode($last7Days); ?>,
-                datasets: [{
-                    label: 'Revenue (₱)',
-                    data: <?php echo json_encode($revenue7Days); ?>,
-                    backgroundColor: '#FF7A00',
-                    borderRadius: 4
-                }]
+    // 2. Initialize Revenue Bar Chart
+    const ctxRev = document.getElementById('revenueChart').getContext('2d');
+    const revenueChart = new Chart(ctxRev, {
+        type: 'bar',
+        data: {
+            labels: <?php echo json_encode($last7Days); ?>,
+            datasets: [{
+                label: 'Revenue (₱)',
+                data: <?php echo json_encode($revenue7Days); ?>,
+                backgroundColor: '#FF7A00',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: { 
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) { return '₱' + value; }
-                        }
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) { return '₱' + value; }
                     }
                 }
             }
-        });
-            function fetchRealTimeStats() {
-            fetch('api_admin_stats.php')
-                .then(response => response.json())
-                .then(data => {
-                    if(data.error) {
-                        console.error("Unauthorized or session expired.");
-                        return;
-                    }
-                    
-                    // Update the HTML elements with the new data
-                    document.getElementById('stat-appointments').innerText = data.totalAppointments;
-                    document.getElementById('stat-active-jobs').innerText = data.activeJobs;
-                    document.getElementById('stat-total-clients').innerText = data.totalClients;
-                    document.getElementById('stat-monthly-revenue').innerText = '₱' + data.monthlyRevenue;
-                })
-                .catch(error => console.error('Error fetching data:', error));
         }
+    });
 
-        // Run this function every 5 seconds (5000 milliseconds)
-        setInterval(fetchRealTimeStats, 5000);
-    </script>
+    // 3. REAL-TIME UPDATE LOGIC (Updates every 5 seconds)
+    function fetchChartData() {
+        fetch('api_chart_data.php')
+            .then(response => response.json())
+            .then(data => {
+                // Update Appointments Chart
+                appointmentsChart.data.datasets[0].data = data.appointments;
+                appointmentsChart.update(); // Re-draw real-time
+
+                // Update Revenue Chart
+                revenueChart.data.labels = data.revenueLabels;
+                revenueChart.data.datasets[0].data = data.revenueData;
+                revenueChart.update(); // Re-draw real-time
+            })
+            .catch(error => console.error("Error fetching live chart data:", error));
+    }
+
+    // Call the API every 5000 milliseconds (5 seconds)
+    setInterval(fetchChartData, 5000);
+</script>
 </body>
 </html>

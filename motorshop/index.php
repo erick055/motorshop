@@ -1,4 +1,4 @@
-<?php include 'db.php'; // Maintain connection ?>
+<?php include 'includes/db.php'; // Maintain connection ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
