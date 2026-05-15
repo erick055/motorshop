@@ -1,6 +1,15 @@
 <?php
 session_start();
-require 'db.php';
+require 'includes/db.php';
+
+// Include PHPMailer. Adjust path if you didn't use Composer.
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
+
+require 'PHPMailer/src/Exception.php';
+require 'PHPMailer/src/PHPMailer.php';
+require 'PHPMailer/src/SMTP.php';
 
 $message = '';
 
@@ -22,12 +31,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($stmt->rowCount() > 0) {
             $message = "Username or Email already taken!";
         } else {
-            // Hash password and insert
+            // Hash password and generate random verification code
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $insert = $pdo->prepare("INSERT INTO users (role, full_name, username, email, password) VALUES (?, ?, ?, ?, ?)");
+            $verification_code = bin2hex(random_bytes(16)); 
             
-            if ($insert->execute([$role, $full_name, $username, $email, $hashed_password])) {
-                $message = "Account created successfully! <a href='login.php' style='color:#FF7A00;'>Log in here.</a>";
+            // Insert user as unverified (is_verified = 0)
+            $insert = $pdo->prepare("INSERT INTO users (role, full_name, username, email, password, is_verified, verification_code) VALUES (?, ?, ?, ?, ?, 0, ?)");
+            
+            if ($insert->execute([$role, $full_name, $username, $email, $hashed_password, $verification_code])) {
+                
+                // --- SMTP CONFIGURATION ---
+                $mail = new PHPMailer(true);
+                try {
+                    $mail->isSMTP();
+                    $mail->Host       = 'smtp.sendgrid.net'; // Or your SMTP provider
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = 'apikey'; // Replace with your email
+                    $mail->Password   = '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';   // Replace with your App Password
+                    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->Port       = 587;
+
+                    $mail->setFrom('erickpallorina@gmail.com', 'ServiceHub');
+                    $mail->addAddress($email, $full_name);
+
+                    // Email Content
+                    $mail->isHTML(true);
+                    $mail->Subject = 'Verify Your Email Address - ServiceHub';
+                    
+                    // Ensure the domain points to your app
+                    $verify_link = "http://localhost/motoshop/verify.php?code=" . $verification_code;
+                    
+                    $mail->Body = "Hi $full_name,<br><br>Thank you for registering at ServiceHub! Please click the link below to verify your email address:<br><br><a href='$verify_link'>$verify_link</a>";
+
+                    $mail->send();
+                    $message = "Account created! A verification email has been sent. Please check your inbox before logging in.";
+                } catch (Exception $e) {
+                    $message = "Account created, but email could not be sent. Mailer Error: {$mail->ErrorInfo}";
+                }
             } else {
                 $message = "Error creating account.";
             }
