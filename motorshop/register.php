@@ -47,7 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $mail->Host       = 'smtp.sendgrid.net'; // Or your SMTP provider
                     $mail->SMTPAuth   = true;
                     $mail->Username   = 'apikey'; // Replace with your email
-                    $mail->Password   = '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';   // Replace with your App Password
+                      // Replace with your App Password
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                     $mail->Port       = 587;
 
